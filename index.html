@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>Two-Tone</title>
     <meta
       name="description"
-      content="Replace this with one sentence saying what this page is. A search result and a link preview both show it."
+      content="A falling-circle dodge game where colour, not distance, decides whether a hit is safe."
     />
 
     <!--
@@ -27,11 +27,11 @@
       </nav>
     </header>
     <main>
-      <h1>COMP4020 prototype</h1>
-      <p>
-        Replace this with your prototype. This week's brief is on the course website;
-        <code>spec/README.md</code> explains how the checks in this repo relate to it.
-      </p>
+      <h1>Two-Tone</h1>
+      <div class="game-wrap">
+        <canvas id="game" tabindex="0" aria-label="Game area"></canvas>
+        <p id="announcer" class="sr-only" role="status" aria-live="polite"></p>
+      </div>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>

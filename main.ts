@@ -1,4 +1,257 @@
-// The TypeScript entry point, loaded as a module by index.html. Vite compiles
-// it; `pnpm typecheck` type-checks it. If the week's spec rules out
-// JavaScript, delete this file and the script tag that loads it.
-export {};
+import {
+  circlesOverlap,
+  fallSpeed,
+  isFatalCollision,
+  otherHue,
+  spawnIntervalMs,
+  type Hue,
+  type Obstacle,
+  type Player,
+} from "./game-logic.ts";
+
+const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
+const announcer = document.querySelector<HTMLElement>("#announcer")!;
+const ctx = canvas.getContext("2d")!;
+
+const HUE_COLOR: Record<Hue, string> = { a: "#2dd4bf", b: "#f472b6" };
+const FIRST_SPAWN_DELAY_MS = 1200;
+const MOVE_SPEED = 340; // px/s, keyboard movement
+const MAX_DT = 0.05; // clamp so a backgrounded tab can't leap the sim forward
+
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+let width = 0;
+let height = 0;
+let player: Player;
+let swapButton: { x: number; y: number; radius: number };
+let obstacles: Obstacle[] = [];
+let state: "playing" | "gameover" = "playing";
+let elapsedSeconds = 0;
+let matchedCount = 0;
+let score = 0;
+let spawnTimer = FIRST_SPAWN_DELAY_MS;
+let lastTime: number | null = null;
+let dragging = false;
+const pressed = new Set<string>();
+
+function resize() {
+  const rect = canvas.getBoundingClientRect();
+  width = rect.width;
+  height = rect.height;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const radius = clamp(width * 0.045, 14, 24);
+  if (!player) {
+    player = { x: width / 2, y: 0, radius, hue: "a" };
+  } else {
+    player.radius = radius;
+    player.x = clamp(player.x, radius, width - radius);
+  }
+  player.y = height - radius - 24;
+  swapButton = { x: width - 34, y: height - 34, radius: 20 };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
+
+function resetGame() {
+  obstacles = [];
+  state = "playing";
+  elapsedSeconds = 0;
+  matchedCount = 0;
+  score = 0;
+  spawnTimer = FIRST_SPAWN_DELAY_MS;
+  player.hue = "a";
+  player.x = width / 2;
+  announcer.textContent = "";
+}
+
+function spawnObstacle() {
+  const radius = clamp(width * 0.045, 14, 24);
+  const hue: Hue = Math.random() < 0.5 ? "a" : "b";
+  obstacles.push({
+    x: clamp(Math.random() * width, radius, width - radius),
+    y: -radius,
+    radius,
+    hue,
+  });
+}
+
+function pointFromEvent(event: PointerEvent): { x: number; y: number } {
+  const rect = canvas.getBoundingClientRect();
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
+
+function withinSwapButton(x: number, y: number): boolean {
+  const dx = x - swapButton.x;
+  const dy = y - swapButton.y;
+  return dx * dx + dy * dy < (swapButton.radius + 12) ** 2;
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  canvas.focus();
+  if (state === "gameover") {
+    resetGame();
+    return;
+  }
+  const { x, y } = pointFromEvent(event);
+  if (withinSwapButton(x, y)) {
+    player.hue = otherHue(player.hue);
+    return;
+  }
+  dragging = true;
+  canvas.setPointerCapture(event.pointerId);
+  player.x = clamp(x, player.radius, width - player.radius);
+});
+
+canvas.addEventListener("pointermove", (event) => {
+  if (!dragging) return;
+  const { x } = pointFromEvent(event);
+  player.x = clamp(x, player.radius, width - player.radius);
+});
+
+function endDrag(event: PointerEvent) {
+  dragging = false;
+  if (canvas.hasPointerCapture(event.pointerId)) {
+    canvas.releasePointerCapture(event.pointerId);
+  }
+}
+canvas.addEventListener("pointerup", endDrag);
+canvas.addEventListener("pointercancel", endDrag);
+
+window.addEventListener("keydown", (event) => {
+  if (state === "gameover") {
+    resetGame();
+    return;
+  }
+  if (event.key === "ArrowLeft" || event.key === "a" || event.key === "A") {
+    pressed.add("left");
+    event.preventDefault();
+  } else if (event.key === "ArrowRight" || event.key === "d" || event.key === "D") {
+    pressed.add("right");
+    event.preventDefault();
+  } else if (event.key === " " || event.key === "Spacebar") {
+    player.hue = otherHue(player.hue);
+    event.preventDefault();
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.key === "ArrowLeft" || event.key === "a" || event.key === "A") pressed.delete("left");
+  if (event.key === "ArrowRight" || event.key === "d" || event.key === "D") pressed.delete("right");
+});
+
+// A key held down while the tab loses focus never gets its keyup — clear
+// held state on blur so the player doesn't drift on refocus.
+window.addEventListener("blur", () => {
+  pressed.clear();
+  dragging = false;
+});
+
+function gameOver() {
+  state = "gameover";
+  announcer.textContent = `Game over. Final score ${score}.`;
+}
+
+function update(dt: number) {
+  elapsedSeconds += dt;
+
+  if (!dragging) {
+    const dir = (pressed.has("right") ? 1 : 0) - (pressed.has("left") ? 1 : 0);
+    player.x = clamp(player.x + dir * MOVE_SPEED * dt, player.radius, width - player.radius);
+  }
+
+  spawnTimer -= dt * 1000;
+  if (spawnTimer <= 0) {
+    spawnObstacle();
+    spawnTimer = spawnIntervalMs(elapsedSeconds);
+  }
+
+  const speed = fallSpeed(elapsedSeconds);
+  const survivors: Obstacle[] = [];
+  for (const obstacle of obstacles) {
+    obstacle.y += speed * dt;
+
+    if (isFatalCollision(player, obstacle)) {
+      gameOver();
+      survivors.push(obstacle);
+      continue;
+    }
+    if (circlesOverlap(player, obstacle)) {
+      matchedCount += 1;
+      continue; // same-hue match: absorbed, removed from play
+    }
+    if (obstacle.y - obstacle.radius <= height) {
+      survivors.push(obstacle);
+    }
+  }
+  obstacles = survivors;
+  score = Math.floor(elapsedSeconds * 10) + matchedCount * 15;
+}
+
+function draw() {
+  ctx.fillStyle = "#171b2e";
+  ctx.fillRect(0, 0, width, height);
+
+  for (const obstacle of obstacles) {
+    ctx.beginPath();
+    ctx.fillStyle = HUE_COLOR[obstacle.hue];
+    ctx.arc(obstacle.x, obstacle.y, obstacle.radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.beginPath();
+  ctx.fillStyle = HUE_COLOR[player.hue];
+  ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#f5f5f7";
+  ctx.stroke();
+
+  const pulse = prefersReducedMotion ? 0 : Math.sin(elapsedSeconds * 4) * 2;
+  ctx.beginPath();
+  ctx.fillStyle = HUE_COLOR[otherHue(player.hue)];
+  ctx.arc(swapButton.x, swapButton.y, swapButton.radius + pulse, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = "#f5f5f7";
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#f5f5f7";
+  ctx.font = "16px system-ui, sans-serif";
+  ctx.fillText(`Score: ${score}`, 12, 24);
+
+  if (state === "gameover") {
+    ctx.fillStyle = "rgba(15, 18, 32, 0.75)";
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = "#f5f5f7";
+    ctx.textAlign = "center";
+    ctx.font = "bold 28px system-ui, sans-serif";
+    ctx.fillText("Game over", width / 2, height / 2 - 16);
+    ctx.font = "18px system-ui, sans-serif";
+    ctx.fillText(`Score: ${score}`, width / 2, height / 2 + 16);
+    ctx.fillText("↻", width / 2, height / 2 + 56);
+    ctx.textAlign = "left";
+  }
+}
+
+function loop(timestamp: number) {
+  if (lastTime === null) lastTime = timestamp;
+  const dt = Math.min((timestamp - lastTime) / 1000, MAX_DT);
+  lastTime = timestamp;
+
+  if (state === "playing") {
+    update(dt);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+resize();
+window.addEventListener("resize", resize);
+requestAnimationFrame(loop);
