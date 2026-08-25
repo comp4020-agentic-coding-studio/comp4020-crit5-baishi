@@ -51,7 +51,10 @@ function resize() {
     player.x = clamp(player.x, radius, width - radius);
   }
   player.y = height - radius - 24;
-  swapButton = { x: width - 34, y: height - 34, radius: 20 };
+  // Top-right, clear of the player's row: sharing the bottom corner with the
+  // swap button let a resize clamp the player right on top of it, muddling
+  // which circle was "you" — found by playing at the mobile viewport.
+  swapButton = { x: width - 34, y: 34, radius: 20 };
 }
 
 function clamp(value: number, min: number, max: number): number {
