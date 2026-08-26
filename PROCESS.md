@@ -82,13 +82,28 @@ find it.
    canvas arcade game this is a deliberate, named scope limit rather than
    something silently left unconsidered — matching most action games of
    this shape.
+8. **A named sensor found something the earlier passes couldn't.** Ran
+   Lighthouse on this repo for the first time and it scored `best-practices`
+   0.96 for a real console error — the browser's own implicit
+   `favicon.ico` probe, on every page load, since no favicon existed. Fixed
+   with a small SVG favicon in the game's own sky-blue/amber pair; the score
+   moved to 1.0 on re-run, not just assumed fixed. Checking the palette for
+   that also turned up a second, unrelated gap: the colourblind-safety hue
+   swap (moment 4) only ever touched `main.ts`, so the header nav link was
+   still rendering in the retired pink. Moved it to the settled amber.
+   [`48e382b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/48e382b)
 
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
 invariants and `spec/crit-5.test.ts`), a real `pnpm preview` played through
-at both marking viewports with the console clean, and a fresh axe-core sweep
-(`agent-browser a11y`) at zero violations.
+at both marking viewports with the console clean, a fresh axe-core sweep
+(`agent-browser a11y`) at zero violations, `html-validate` clean except the
+template's own expected doctype/void-style non-issues, a live keyboard
+tab-order walk (nav link → canvas, both with a visible default outline),
+and a real play-through by eye (not just the scripted bot) confirming the
+two hues, the swap button's dashed hint, and the game-over/restart cycle
+all read clearly.
 
 Not yet done: the reflection, the final read-through against the published
 spec, and shipping. This is a build-phase run, not the last one.
