@@ -874,6 +874,34 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   `appearance: none` combined with `border: none` as the specific pattern to
   look for.
 
+- **For a game/interaction whose canvas resolution is JS-driven off
+  `getBoundingClientRect()` and only resynced on a `resize` event, the
+  `documentElement.style.zoom` technique used elsewhere in this log for
+  WCAG 1.4.10 reflow checks can produce a false positive, not a real bug.**
+  On crit-5, forcing `style.zoom = '2'` squashed every canvas-drawn circle
+  into an ellipse — the canvas's pixel buffer (set once at load/resize
+  time) no longer matched its now-differently-proportioned rendered box.
+  Traced before fixing anything: `style.zoom` doesn't fire a `resize`
+  event and doesn't change `window.innerWidth` in this sandbox — confirmed
+  directly (`window.__resizeFired` stayed 0, `innerWidth` unchanged across
+  the zoom toggle). That matters because neither real zoom mechanism a
+  visitor could actually use reaches this state: real desktop browser zoom
+  (Ctrl-+/-) *does* resize the layout viewport and *does* fire `resize`
+  (confirmed by that same app's `resize()` handler already producing
+  correctly round circles at both marking viewports under ordinary,
+  non-`style.zoom` use); real mobile pinch-zoom *never* resizes the layout
+  viewport at all (confirmed via web search — pinch/pan only change the
+  *visual* viewport, a distinct concept from the *layout* viewport that
+  `getBoundingClientRect()` reads from, per the VisualViewport API's own
+  raison d'être), so it can't desync the buffer either. `style.zoom` is
+  useful for plain DOM/CSS reflow checks (confirmed clean on earlier,
+  non-canvas crits) but is not a faithful proxy for *either* real zoom
+  mechanism on an element whose size is cached in JS off
+  `getBoundingClientRect()` — don't diagnose a canvas-squash finding under
+  `style.zoom` as a shippable bug without first checking whether the app's
+  own `resize` handler already covers real zoom's actual viewport-resize
+  behaviour, the way this one did.
+
 ## Open threads for future runs
 
 - `comp4020-crit5-baishi` (Two-Tone, a colour-match falling-circle dodge
@@ -924,6 +952,25 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   five-minute session (can't be self-administered, an open thread for the
   studio crit itself), `pnpm audit`/`outdated`, a 200%-zoom reflow check,
   and a copy-vs-behaviour prose pass.
+  A fourth run, 2026-08-27, 143h-to-cutoff, worked that exact list.
+  `pnpm audit` found 7 real vulnerabilities in transitive dev-tooling deps;
+  a plain in-range `pnpm update` (`vite`→8.2.2, `vitest`→4.1.11) cleared
+  all of them, `pnpm check` staying green (`ae3fa91`). The 200%-zoom check
+  found a canvas-squash effect but traced it to a testing-technique
+  artifact rather than a real bug — see the new dedicated entry above
+  (`style.zoom` doesn't fire `resize`/change `innerWidth`, so it can't
+  faithfully stand in for either real desktop zoom or real mobile
+  pinch-zoom on this canvas-driven layout) — no code change. The
+  copy-vs-behaviour prose pass checked the meta description against
+  `isFatalCollision` directly and found it accurate; nothing to fix.
+  `PROCESS.md` now at 9 cited moments, pushed (`f1881aa`). Not the last
+  run. See its `now.md` for what's left: the human-timed five-minute
+  session (still open, still not self-administerable), a real
+  pointer-drag test of drag-to-move specifically (only keyboard movement
+  and the swap button's click have had genuine non-keyboard input so
+  far), and a live `prefers-reduced-motion` check of the swap button's
+  pulse animation (the branch exists in `draw()` but has never been
+  observed live via `agent-browser set media reduced-motion`).
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky

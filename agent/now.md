@@ -1,5 +1,5 @@
 ---
-updated: 2026-08-26
+updated: 2026-08-27
 deliverable: comp4020-crit5-baishi
 ---
 
@@ -7,82 +7,66 @@ deliverable: comp4020-crit5-baishi
 
 ## State
 
-Third run on `comp4020-crit5-baishi`, 154h to cutoff — still deepen phase,
-not the last run. Started from the second run's state (nine commits, all
-pushed) and worked through the exact list its own `now.md` had flagged as
-untried: html-validate re-run, Lighthouse, a live keyboard tab-order walk,
-and a real by-eye playtest (as opposed to the prior run's scripted bot).
+Fourth run on `comp4020-crit5-baishi`, 143h to cutoff — still deepen phase,
+not the last run. Worked the exact list the third run's `now.md` had
+flagged as untried: `pnpm audit`/`outdated`, the 200%-zoom reflow check,
+and a prose/copy pass.
 
-1. **html-validate re-run: clean.** Same expected doctype/void-style
-   non-issues as every prior repo in this pattern, nothing else fired.
-2. **Lighthouse (never run on this repo before): found a real issue,
-   fixed.** `best-practices` scored 0.96 for a genuine console error —
-   the browser's own implicit `favicon.ico` 404, since none existed. Same
-   class of finding as crit-4. Added `public/favicon.svg` (a small
-   ink-dot icon in the game's own sky-blue/amber pair) and linked it from
-   `index.html`; re-ran Lighthouse to confirm `best-practices` back to
-   1.0 and `errors-in-console` 0 → 1, not just assumed fixed.
-   `seo`/`agentic-browsing` stayed at their expected sub-1.0 scores
-   (missing robots.txt/llms.txt) — not worth chasing on a tiny static
-   single-page site, matching the established lesson.
-3. **A second, unrelated gap found while checking the palette: fixed.**
-   The colourblind-safety hue swap (a prior run's moment 4, teal/pink →
-   sky blue/amber) only ever touched `main.ts`'s in-game colours —
-   `styles.css`'s header nav link was still the retired pink `#f472b6`.
-   Not an accessibility bug on its own (a single link colour, nothing to
-   pair it against), but a real palette-consistency gap: the site's own
-   chrome still carried a colour the game itself had dropped. Moved it to
-   the amber already in the settled pair (8.7:1 contrast against the body
-   background, confirmed by computing WCAG relative luminance directly).
-   [`48e382b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/48e382b)
-4. **Live keyboard tab-order walk: clean.** Tab order is nav link → canvas
-   → (wraps, nothing else focusable) — both stops carry the browser's
-   default visible outline (no `outline: none` reset in `styles.css`).
-   Keyboard controls (arrows/A/D to move, Space to swap) are wired on
-   `window`, not gated behind canvas focus, so a stranger can start
-   playing by keyboard immediately without ever tabbing to anything.
-5. **Real by-eye playtest (not the scripted bot): confirms the design
-   reads well, no new bug found.** Screenshotted a live session end to
-   end: the two hues are clearly distinct from each other and from the
-   dark canvas background at both a glance and in motion; the swap
-   button's dashed outline (drawn in the colour you'd switch *to*) reads
-   as visually distinct from a real obstacle; the game-over screen (bold
-   text, final score, a restart icon, no instructional copy) teaches the
-   restart affordance the same way the opening screen teaches the first
-   move; restart-by-keypress and the score/announcer reset were confirmed
-   live. No design change came out of this pass — a legitimate outcome,
-   since the spec's "found by playing" requirement was already satisfied
-   by the swap-button fix on the very first build run.
+1. **`pnpm audit`: found 7 real vulnerabilities (2 high, 5 moderate) in
+   transitive dev-tooling deps (`undici` via `jsdom`, `postcss`/`nanoid`
+   via `vite`'s toolchain). Fixed.** A plain `pnpm update` — in-range only,
+   no pin's ceiling raised — bumped `vite` 8.1.5→8.2.2 and `vitest`
+   4.1.10→4.1.11 and cleared every finding; `pnpm check` stayed green.
+   `pnpm outdated`'s other entries (`@types/jsdom`, `@types/node`,
+   `typescript`) are all major bumps, correctly left alone, matching the
+   established distinction.
+   [`ae3fa91`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/ae3fa91)
+2. **200%-zoom reflow check: found a squash, investigated, concluded it's
+   a testing-technique artifact, not a real bug — no code change.** This
+   is a canvas game whose pixel buffer is only resynced to its CSS box on
+   a `resize` event. Forcing zoom via `documentElement.style.zoom` doesn't
+   fire `resize` and doesn't change `window.innerWidth`, so the stale
+   buffer stretches to the new (differently-proportioned) box and every
+   circle renders as an ellipse. Before treating this as a defect: real
+   desktop browser zoom *does* resize the layout viewport and *does* fire
+   `resize`, which the app already handles correctly (confirmed round
+   circles at both marking viewports under ordinary use); real mobile
+   pinch-zoom *never* resizes the layout viewport at all (confirmed via
+   web search — pinch-zoom only changes the visual viewport, not the
+   layout viewport `getBoundingClientRect()` reads from), so it can't
+   desync the buffer either. Neither real zoom mechanism can reach this
+   state. See the new `MEMORY.md` entry below — this generalises to any
+   future crit with a JS-driven canvas resize.
+3. **Prose/copy pass: nothing to fix.** Checked the meta description ("a
+   falling-circle dodge game where colour, not distance, decides whether a
+   hit is safe") against `isFatalCollision` directly — accurate: overlap
+   alone is never fatal, only a hue mismatch is. `h1`, nav copy, and the
+   `#announcer` text (empty until game-over, then final score) all matched
+   actual behaviour. Very little copy on this page, so a small pass, but a
+   genuine one, not skipped.
 
-`pnpm check` green throughout (21 tests, unchanged). `pnpm check:evidence`
-fails on exactly the expected single thing (no reflection yet). Fresh
-axe-core sweep at both marking viewports: 0 violations (checked again since
-the head/CSS changed). Two commits made this run (the favicon/nav-colour
-fix, the `PROCESS.md` update), pushed to `origin/main` (`21c4d97`).
-`PROCESS.md` now at 8 cited moments.
+`pnpm check` green throughout (21 tests, unchanged). Fresh `pnpm preview`
+console-clean at both marking viewports post-dependency-bump. Two commits
+this run (the dependency update, the `PROCESS.md` citation), pushed to
+`origin/main` (`f1881aa`). `PROCESS.md` now at 9 cited moments.
 
 ## Next action
 
 Still mid-deepen, no reflection yet — correct this far from cutoff. What's
-now genuinely untried, roughly in order of likely value:
+now genuinely untried:
 
-- A real human-timed five-minute session judged for *feel*, not just
-  survivability — this run's playtest was thorough but still solo/agent-eye;
-  the brief's own bar ("a stranger can pick it up and reach an ending inside
-  five minutes," judged live by the pod) is the one check that can't be
-  self-administered at all. Nothing left to simulate here; note it as an
-  open thread for the studio crit itself, same as crit-4's pad-count/range
-  question.
-- `pnpm audit`/`pnpm outdated` haven't been run on this repo yet — cheap,
-  and per `MEMORY.md`'s established distinction (`audit` + in-range
-  `update` is worth trying; a major-version `outdated` bump usually isn't
-  this close to a template's pin) worth a look next run.
-- A 200%-browser-zoom reflow check (WCAG 1.4.10, the `style.zoom` technique
-  logged in `MEMORY.md`) hasn't been tried on this repo — the canvas is
-  `width: 100%; height: min(70vh, 32rem)`, worth confirming it reflows
-  without horizontal scroll and stays legible zoomed.
-- The prose/copy pass (does the page's own text match what the interaction
-  actually does — the lens that caught a real bug on assignment-1) hasn't
-  been run here yet; this page has very little copy (title + meta
-  description + one nav link), so it may come back "nothing to check," but
-  worth a quick read.
+- The real human-timed five-minute session (open thread for the studio
+  crit itself, not self-administerable — noted again, not newly found).
+- That's close to the bottom of the self-administerable technical list for
+  this repo: html-validate, Lighthouse, axe-core, keyboard tab order, the
+  scripted-bot difficulty ramp, tap-highlight, palette/CVD safety, audit,
+  zoom-reflow and prose-copy have all now been run at least once. A future
+  run reaching for a "genuinely untried" angle should consider: a real
+  pointer-drag test of the player-drag control (only keyboard movement and
+  the swap button's click have been driven with real input so far, per a
+  grep of this session's own testing — worth confirming next run whether
+  drag-to-move has had a genuine `agent-browser mouse move` pass, as
+  distinct from keyboard `A`/`D`), and whether `prefers-reduced-motion`
+  actually kills the swap button's pulse animation live (the code branches
+  on it in `draw()` but it's never been observed live via `agent-browser
+  set media reduced-motion`, unlike crit-1's marquee which was).
