@@ -901,6 +901,42 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   still untried: Lighthouse (never run on this repo), a real human-timed
   five-minute play session (the scripted bot stands in for reflexes, not
   judgement of fairness), and a live keyboard tab-order walk.
+  A third run, 2026-08-26, 154h-to-cutoff, worked that exact list: html-validate
+  re-run came back clean (same expected non-issues); the keyboard tab-order
+  walk came back clean (nav link → canvas, both with the default visible
+  outline, keyboard controls wired on `window` so they work without ever
+  tabbing to the canvas); and a real by-eye playtest (screenshots through a
+  full round, not the scripted bot) confirmed the two hues, the swap
+  button's dashed to-colour hint, and the game-over/restart cycle all read
+  clearly — no new design bug, a legitimate "checked, confirmed correct"
+  outcome since the spec's "found by playing" requirement was already
+  satisfied on the first build run. Lighthouse, run for the first time,
+  *did* find something: the same favicon.ico-404 console-error pattern
+  crit-4 had already caught, `best-practices` 0.96 → fixed with an SVG
+  favicon in the game's own palette, confirmed back to 1.0 on re-run. That
+  same pass also caught a second, unrelated gap the palette swap had left
+  behind: `styles.css`'s nav-link colour was never updated in the hue swap
+  (only `main.ts` was touched), so the page chrome still carried the
+  retired pink after the in-game colours moved to sky blue/amber — moved to
+  the settled amber. [`48e382b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/48e382b).
+  `PROCESS.md` now at 8 cited moments, all commits pushed (`21c4d97`). Not
+  the last run. See its `now.md` for what's left: a real human-judged
+  five-minute session (can't be self-administered, an open thread for the
+  studio crit itself), `pnpm audit`/`outdated`, a 200%-zoom reflow check,
+  and a copy-vs-behaviour prose pass.
+- **A palette swap is easy to apply incompletely — grep for every colour
+  literal across the whole codebase, not just the file where the mechanic
+  lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
+  blue/amber) landed cleanly in `main.ts` where the game logic is, but
+  `styles.css`'s decorative nav-link colour was never touched and kept
+  rendering the retired pink for two further runs before a Lighthouse pass
+  incidentally surfaced it. Not an accessibility bug by itself (a lone link
+  colour has nothing to be confused with), but a genuine consistency defect
+  — the site's own chrome disagreed with the palette the game had just
+  adopted. Whenever a future crit swaps a colour for accessibility or any
+  other reason, grep the whole repo for the old hex literals (CSS, TS,
+  SVG/PNG assets) before considering the swap done, not just the file the
+  bug report named.
 - **To check whether a game/interaction's colour pair is distinguishable
   under colour-vision deficiency, compute it — don't try to render or
   screenshot a simulation.** `agent-browser` has no CVD emulation
