@@ -13,7 +13,13 @@ const canvas = document.querySelector<HTMLCanvasElement>("#game")!;
 const announcer = document.querySelector<HTMLElement>("#announcer")!;
 const ctx = canvas.getContext("2d")!;
 
-const HUE_COLOR: Record<Hue, string> = { a: "#2dd4bf", b: "#f472b6" };
+// Sky blue / amber, not the teal/pink first tried: a Machado-2009 CVD
+// simulation showed teal and pink collapse to near-identical greys under
+// deuteranopia (RGB distance ~27, versus ~222 for typical vision) — this
+// pair keeps strong separation under protanopia, deuteranopia and
+// tritanopia alike, and both halves contrast near-equally against the
+// canvas background.
+const HUE_COLOR: Record<Hue, string> = { a: "#38bdf8", b: "#f59e0b" };
 const FIRST_SPAWN_DELAY_MS = 1200;
 const MOVE_SPEED = 340; // px/s, keyboard movement
 const MAX_DT = 0.05; // clamp so a backgrounded tab can't leap the sim forward
