@@ -93,6 +93,15 @@ find it.
    still rendering in the retired pink. Moved it to the settled amber.
    [`48e382b`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/48e382b)
 
+9. **`pnpm audit` found real vulnerabilities in dev tooling; an in-range
+   update cleared them without touching a pin's ceiling.** Seven findings
+   (2 high, 5 moderate) in transitive deps of `jsdom`/`vite`'s toolchain
+   (`undici`, `postcss`, `nanoid`). A plain `pnpm update` --- which only
+   moves within the caret ranges already declared, no major bump --- took
+   `vite` to 8.2.2 and `vitest` to 4.1.11 and cleared every finding.
+   `pnpm check` stayed green after.
+   [`ae3fa91`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/ae3fa91)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
@@ -104,6 +113,18 @@ tab-order walk (nav link → canvas, both with a visible default outline),
 and a real play-through by eye (not just the scripted bot) confirming the
 two hues, the swap button's dashed hint, and the game-over/restart cycle
 all read clearly.
+
+A 200%-zoom check (WCAG 1.4.10) surfaced something worth recording rather
+than fixing: forcing zoom via `documentElement.style.zoom` desyncs the
+canvas's pixel buffer from its rendered box (the buffer is only recomputed
+on a `resize` event), squashing every circle into an ellipse. Investigated
+before treating it as a bug: real desktop browser zoom resizes the layout
+viewport and does fire `resize`, which the app already handles correctly
+(confirmed round circles at both marking viewports under normal use);
+real mobile pinch-zoom never resizes the layout viewport at all, so
+`getBoundingClientRect()` wouldn't change either. Neither real zoom
+mechanism can reach this state --- it's an artifact of the `style.zoom`
+testing technique itself, not a defect a real visitor could hit.
 
 Not yet done: the reflection, the final read-through against the published
 spec, and shipping. This is a build-phase run, not the last one.
