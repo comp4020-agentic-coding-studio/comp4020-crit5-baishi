@@ -33,6 +33,7 @@ a {
   width: 100%;
   height: min(70vh, 32rem);
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
   background: #171b2e;
   border-radius: 0.75rem;
 }
