@@ -886,12 +886,63 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   and both marking viewports played through live against `pnpm preview`
   with a clean console. Deliberately used the harder "two mechanics that
   interact" shape the brief calls out (movement + colour-toggle) rather
-  than a single-mechanic dodge. Not the last run — no reflection yet,
-  correctly. See its `now.md` for the specific untried angles flagged for
-  the next run: a real five-minute playtest of the difficulty ramp, whether
-  the two hues are colourblind-distinguishable (see the new colour-mechanic
-  entry above), and a resize-mid-interaction check that hasn't been tried
-  on this repo yet.
+  than a single-mechanic dodge. A second run the same day, 160h-to-cutoff,
+  closed every angle that run's `now.md` had flagged and found two real
+  bugs: the launch teal/pink hue pair collapsed to near-identical greys
+  under deuteranopia (see the CVD-simulation-matrix entry below) — fixed
+  to sky blue/amber, and re-applied to `public/card.png` too, which still
+  showed the old palette after the in-game fix (`5d63433`) — and a missing
+  `-webkit-tap-highlight-color` on the full-bleed canvas, the same class of
+  finding as crit-4's `.pad` (`8b9e859`). A scripted reactive-bot playtest
+  of the difficulty ramp (see below) came back clean, and the
+  screen-reader-scope question was explicitly decided (not left
+  unconsidered) and written into `PROCESS.md`, now at 7 cited moments. Not
+  the last run — no reflection yet, correctly. See its `now.md` for what's
+  still untried: Lighthouse (never run on this repo), a real human-timed
+  five-minute play session (the scripted bot stands in for reflexes, not
+  judgement of fairness), and a live keyboard tab-order walk.
+- **To check whether a game/interaction's colour pair is distinguishable
+  under colour-vision deficiency, compute it — don't try to render or
+  screenshot a simulation.** `agent-browser` has no CVD emulation
+  (Chrome DevTools' own `Emulation.setEmulatedVisionDeficiency` isn't
+  exposed through it, same gap as the missing zoom/print-media/touch
+  primitives already logged above). Instead, apply the Machado, Oliveira &
+  Fernandes (2009) simulation matrices directly to the two hex colours in
+  Node: convert sRGB→linear, multiply by the published 3×3 matrix
+  (verified against the `colour-science` Python library's own dataset via
+  WebFetch before trusting the numbers — protanopia
+  `[[0.152286,1.052583,-0.204868],[0.114503,0.786281,0.099216],[-0.003882,-0.048116,1.051998]]`,
+  deuteranopia
+  `[[0.367322,0.860646,-0.227968],[0.280085,0.672501,0.047413],[-0.011820,0.042940,0.968881]]`,
+  tritanopia
+  `[[1.255528,-0.076749,-0.178779],[-0.078411,0.930809,0.147602],[0.004733,0.691367,0.303900]]`),
+  convert back linear→sRGB, then compare Euclidean RGB distance against
+  the un-simulated distance. On crit-5 this caught a real, otherwise
+  invisible failure: teal `#2dd4bf`/pink `#f472b6` simulate to RGB distance
+  ~27 under deuteranopia (vs ~222 normally) — a colourblind player
+  literally couldn't tell them apart, in a game whose entire rule is
+  telling them apart. Also check the replacement pair's contrast against
+  the actual background colour (WCAG relative-luminance formula, same
+  computation), not just its CVD separation — a pair that's well-separated
+  under simulation but low-contrast against a dark canvas (a plain navy
+  scored 1.64:1 against this game's `#171b2e`, versus teal's 9.15:1) would
+  trade one accessibility problem for another. This generalises to any
+  future crit/assignment whose mechanic or content depends on
+  distinguishing colours by hue alone.
+- **A temporary, uncommitted debug hook on `window` is the way to
+  playtest a game whose real state (obstacle positions, elapsed time,
+  score) lives in module scope with no DOM/CSS trace to read from
+  outside.** Same shape as crit-4's `AudioContext`-capture technique, but
+  for game state instead of an audio node: add a getter
+  (`window.__debug = { get state() { return {...} } }`) right after the
+  page's own setup code, rebuild, drive real input via `agent-browser`
+  (dispatched `KeyboardEvent`s for swap/move, `PointerEvent`s for drag),
+  and poll the getter with `eval` between actions. On crit-5 this let a
+  scripted bot play a real ~5-minute session against the live build and
+  prove the post-ramp difficulty doesn't become an unfair wall — something
+  arithmetic on `fallSpeed`/`spawnIntervalMs` alone couldn't settle.
+  Revert the hook before running `pnpm check`/committing; it's a
+  verification tool, not a shipped feature.
 - crit-1 and crit-2 are both fully finished and pushed (reflections written,
   all checks green, doctrine finishing steps done — crit-2 also had a
   deepening pass find and fix two real issues, see `now.md`). Both repos have
