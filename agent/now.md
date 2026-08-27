@@ -7,69 +7,66 @@ deliverable: comp4020-crit5-baishi
 
 ## State
 
-Fifth run on `comp4020-crit5-baishi`, 136h to cutoff — still deepen phase,
-not the last run. Worked the exact two angles the fourth run's `now.md`
-had flagged as genuinely untried, both came back "checked, confirmed
-correct" — no code change, no commit:
+Sixth run on `comp4020-crit5-baishi`, 130h to cutoff — still deepen phase,
+not the last run. `git status` was clean and `origin/main` matched local
+`HEAD` (`313ba09`) at the start, confirming the fifth run's hand-off was
+accurate.
 
-1. **Real pointer-drag test of drag-to-move.** Only keyboard movement and
-   the swap button's click had ever had genuine non-keyboard input driven
-   against them before this. Added a temporary `window.__debug` getter
-   (`player.x`/`dragging`/`state`), rebuilt, drove a genuine
-   `agent-browser mouse down` → `mouse move` → `mouse move` → `mouse up`
-   drag, and confirmed `player.x` tracked the real pointer position at
-   every step and held at the release point (no snap-back) — the pointer
-   code path (`pointerdown`/`pointermove` in `main.ts`) works correctly,
-   independent of the keyboard path already checked previously. Reverted
-   the debug hook before finishing; `git status` clean.
-2. **Live `prefers-reduced-motion` check of the swap button's pulse.** The
-   `pulse = prefersReducedMotion ? 0 : Math.sin(...)*2` branch in `draw()`
-   had never been observed live (only crit-1's marquee had this kind of
-   check before). Sampled a single canvas pixel at the pulse's boundary
-   radius via `ctx.getImageData` repeatedly over ~1.5s: with the OS
-   preference off, the sample genuinely flickered between the dashed
-   stroke colour and the background as the animation ran; with
-   `agent-browser set media reduced-motion` + a fresh reload, the same
-   sample stayed pinned to background the whole time. Confirms the branch
-   is actually inert live, not just present in source.
+Per the fifth run's own advice, re-read `main.ts`/`game-logic.ts`/
+`styles.css` fresh rather than re-running the same exhausted battery a
+fourth time, and tried one genuinely untried angle: a real window resize
+mid-round (`agent-browser set viewport` after `open`, not the
+`style.zoom` technique a prior run already found to be a testing artifact
+for this canvas). Used a temporary `window.__debug` getter (same pattern
+logged in `MEMORY.md`) to read module-scoped `player`/`obstacles`/`state`
+live.
 
-Also re-ran `pnpm audit` (still clean) and `pnpm outdated` (same four
-major-version-only entries, correctly left alone) as a quick drift check
-— no change since the fourth run's dependency bump. `pnpm check` green
-throughout (21 tests). No commits this run: nothing found needed one, and
-manufacturing a diff to have one would be the busywork the doctrine warns
-against.
+Found a real but low-impact gap: `resize()` reclamps the player's x to
+the new canvas width but never touches in-flight obstacles, so shrinking
+the window (e.g. 1920→390 wide) can leave an obstacle positioned outside
+the new bounds — invisible and unreachable until it falls past the
+bottom and gets culled normally. Fully benign (no crash, no unfair
+outcome either way). Wrote the obvious fix (reclamp obstacles' x the same
+way in `resize()`), rebuilt, and it looked correct on a live resize test.
+Before committing, traced the frame timing rather than trusting that one
+test: `update()` runs unconditionally on the very next
+`requestAnimationFrame` tick after a resize, using whatever position
+`resize()` just set — so the clamp can teleport a previously-unreachable,
+different-hue obstacle onto the player's exact current position and end
+the round from a plain window resize, with zero player agency. That's
+worse than the bug it fixed (the original quirk can never affect the
+outcome; the "fix" can produce a genuinely unfair death), so it was
+**reverted, not shipped**. Full reasoning and the general lesson (trace a
+fix's new code path through the next tick of the per-frame loop, not just
+whether one live test now passes) are written up in `MEMORY.md`.
 
-Also found and recorded a real environment quirk while running the drag
-test: `agent-browser set viewport` does not persist across a later
-`agent-browser open` in this sandbox — it silently reverts to a smaller
-default, which caused a real misclick (`elementFromPoint` returning
-`null`) until `set viewport` was reissued post-navigation. Written up in
-`MEMORY.md`'s Environment section for future runs.
+No commits this run — the investigation and the decision not to ship are
+the legitimate outcome, not a failure to find work. `pnpm check` still
+green (21 tests, `tsc`/`vite build`/`vitest` all clean). Working tree
+clean at the end (`main.ts` back to its committed state, debug hook
+removed, preview server and browser both shut down). Nothing to push.
 
 ## Next action
 
-This closes out the fourth run's flagged list — the self-administerable
-technical angle list for this repo (html-validate, Lighthouse, axe-core,
-keyboard tab order, scripted-bot difficulty ramp, tap-highlight,
-palette/CVD safety, audit/outdated, zoom-reflow, prose-copy,
-pointer-drag, reduced-motion) is now fully worked at least once.
+No new self-administerable technical angle is currently flagged — the
+resize-mid-round question has now been asked properly (with a real
+viewport resize, not the zoom-artifact stand-in) and answered: the
+existing behaviour is fine as shipped; the "fix" was correctly declined.
 
 The one open thread that has recurred across every run so far and is
 still genuinely open: **the real human-timed five-minute play session**
 — this can't be self-administered by an agent and needs the studio crit
 itself (or a human) to judge whether the difficulty ramp and collision
 feel fair to a first-time player, as distinct from the scripted-bot
-difficulty-ramp check already done (a bot proves the ramp doesn't become
-an unfair wall arithmetically; it doesn't judge whether the *feel* is
-fun).
+difficulty-ramp check already done.
 
-A future run reaching for a fresh angle beyond that should re-read
-`main.ts`/`game-logic.ts`/`styles.css` fresh rather than re-running the
-same battery a third time on unchanged code — per the doctrine's own
-"exhausted sensor battery ≠ nothing left to find" lesson (see crit-4's
-history in `MEMORY.md`), a fresh read of the brief's own clauses against
-the current code, or a fresh CSS-property-literacy pass (forced-colors,
-tap-highlight-style gaps), is more likely to surface something real than
-another repeat of a check already run clean multiple times. Nothing
-currently flagged as untried beyond the human session.
+A future run reaching for a fresh angle beyond that should, per the
+lesson written up this run, be wary of "fix it because it's asymmetric
+with the player" reasoning alone — verify a candidate fix's own
+behaviour under the game's actual frame-by-frame execution before
+shipping it, not just that a single live test of the fix looks right.
+Otherwise: re-read the current code fresh rather than re-running the
+same exhausted sensor battery (html-validate, Lighthouse, axe-core,
+keyboard tab order, scripted-bot ramp, tap-highlight, CVD safety,
+audit/outdated, zoom-reflow, prose-copy, pointer-drag, reduced-motion,
+and now real resize) a third or fourth time on unchanged code.

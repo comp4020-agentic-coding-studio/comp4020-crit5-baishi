@@ -1005,6 +1005,20 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   angle on the fourth run's flagged list; the studio-crit five-minute
   session remains the only open thread. Not the last run — no reflection
   yet, correctly.
+  A sixth run, 2026-08-27, 130h-to-cutoff, re-read `main.ts`/`game-logic.ts`/
+  `styles.css` fresh (per the prior run's own advice to prefer a fresh read
+  over a fourth repeat of the exhausted battery) and tried one genuinely
+  untried angle: a real window resize mid-round via
+  `agent-browser set viewport`, distinct from the `style.zoom` reflow check
+  a prior run had already found to be a testing-artifact false lead for this
+  canvas. Found a real (low-impact) gap — `resize()` reclamps the player's x
+  but never obstacles' — then found the obvious fix was worse than the bug
+  and reverted it; see the new dedicated entry below for the full reasoning.
+  No commits this run — the investigation itself, and the decision not to
+  ship the fix, is the legitimate outcome. `pnpm check` still green (21
+  tests), working tree clean, nothing new pushed. Not the last run. The
+  human-timed five-minute session remains the only standing open thread; no
+  new self-administerable angle is currently flagged.
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
@@ -1060,6 +1074,40 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   arithmetic on `fallSpeed`/`spawnIntervalMs` alone couldn't settle.
   Revert the hook before running `pnpm check`/committing; it's a
   verification tool, not a shipped feature.
+- **A fix for a benign edge case can introduce a worse one — trace the fix's
+  own new code path through the game's per-frame logic before committing it,
+  not just whether it clears the symptom you set out to fix.** On crit-5, a
+  real window resize mid-round (via `agent-browser set viewport` after
+  `open`, using the `window.__debug` technique above to read module-scoped
+  state — distinct from the `style.zoom` reflow check logged elsewhere,
+  which a prior run had already found to be a testing-artifact false lead
+  for this specific canvas) surfaced a real gap: `resize()` reclamps the
+  player's x to the new, possibly-narrower canvas width but never touches
+  in-flight obstacles, so one can end up positioned outside the new bounds —
+  invisible and unreachable until it falls past the bottom and gets culled
+  normally. This is fully benign: no crash, no leak, and no effect on the
+  outcome, since an unreachable obstacle can neither kill the player nor be
+  matched. The obvious fix (reclamp obstacles' x the same way, one line in
+  `resize()`) built and looked correct at a glance — a live resize test even
+  showed obstacles correctly repositioned within the new bounds. But tracing
+  the timing carefully rather than trusting that one clean test run: `update()`
+  runs unconditionally on the very next `requestAnimationFrame` tick after a
+  resize, using whatever position `resize()` just set, so the clamp can
+  teleport a previously-unreachable, different-hue obstacle onto the
+  player's exact current position and end the round on the next frame —
+  purely from a window resize the player took no action to cause. That is
+  strictly worse than the bug it fixed: the original quirk can never affect
+  the outcome, while the "fix" can produce a genuinely unfair, unreactable
+  death, directly against this crit's own "a collision has to feel fair"
+  ethos (echoing the doctrine's own line, "only playing can tell you whether
+  the collision feels fair"). Reverted rather than shipped; no commit. The
+  general lesson: for any fix to a rare/benign edge case in something with a
+  per-frame update loop, ask what the fix's own new code path can produce in
+  combination with the *next* tick of that loop, not just whether it now
+  passes the specific scenario you were testing — "the live test passed"
+  and "the fix is actually an improvement" are different claims, and the
+  gap between them only shows up by reasoning through frame-by-frame
+  ordering, not by re-running the same test again.
 - crit-1 and crit-2 are both fully finished and pushed (reflections written,
   all checks green, doctrine finishing steps done — crit-2 also had a
   deepening pass find and fix two real issues, see `now.md`). Both repos have
