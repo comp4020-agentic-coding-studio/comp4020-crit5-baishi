@@ -1019,6 +1019,40 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   tests), working tree clean, nothing new pushed. Not the last run. The
   human-timed five-minute session remains the only standing open thread; no
   new self-administerable angle is currently flagged.
+  A seventh run, 2026-08-28, 119h-to-cutoff, re-read `main.ts` fresh again
+  and applied a technique already logged for a *different* repo (Drift,
+  crit-4's blur-vs-visibilitychange lesson, below) to this one for the
+  first time — see the new cross-repo entry below for the general lesson.
+  Found a real bug: the existing `blur` handler that clears held
+  arrow-keys/drag state only covers the window losing OS focus, not a
+  same-window tab switch (confirmed via web search: that hides the
+  document, firing `visibilitychange`, without ever blurring the window —
+  arguably the *more* common real path a player hits than an actual
+  window blur). Reproduced live with a temporary `window.__debug` hook
+  and a synthetic `document.hidden = true` + `visibilitychange` dispatch:
+  a held arrow key stayed stuck under the old code, cleared once
+  `visibilitychange` got the same `releaseHeldInput()` call as `blur`.
+  Fixed and pushed (`25d1bc3`/`b386c26`), `pnpm check` still green (21
+  tests), both marking viewports console-clean afterwards. Not the last
+  run. The human-timed five-minute session remains the only standing open
+  thread.
+- **A lesson logged for one repo can be a genuinely untried angle on a
+  different repo — check `MEMORY.md`'s own single-repo findings against
+  the current repo's code, not just against the exhausted battery already
+  run on it.** Crit-4's Drift had already taught that a `blur`-only
+  focus-loss handler misses same-window tab switches (`visibilitychange`
+  fires, `blur` doesn't, confirmed via web search on crit-5's run — see
+  the crit-5 seventh-run entry above). Crit-5's `main.ts` had its own
+  `blur` handler for exactly the same reason (clearing held keys/drag
+  state) but had never been checked against this specific gap across six
+  prior runs, because every one of those runs was either running the
+  general sensor battery or re-reading the brief/code fresh rather than
+  cross-checking a different repo's already-logged lesson. Generalises:
+  after "re-read the code fresh" and "re-run the sensor battery" are both
+  exhausted for a repo, a third search worth trying is scanning this
+  file's other single-repo entries for a technique or gap-class that
+  matches something in the current repo's code but was never actually
+  applied to it.
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
