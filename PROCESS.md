@@ -102,6 +102,20 @@ find it.
    `pnpm check` stayed green after.
    [`ae3fa91`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/ae3fa91)
 
+10. **A focus-loss handler covered `blur` but not the case that actually
+    happens most often.** The keyboard-movement fix in the code already
+    cleared held keys on `window.blur` so a tab-away didn't leave the
+    player drifting on return, but `blur` only fires when the whole
+    browser window loses OS focus — switching tabs *within* the same
+    window hides the document without ever blurring the window.
+    Confirmed live: dispatching a synthetic `visibilitychange` with
+    `document.hidden` forced `true` left an arrow key stuck in the
+    held-keys set under the old code, and cleared it once
+    `visibilitychange` got the same handler as `blur`. The more common
+    real-world case (Ctrl-Tab away mid-round) was the one path the
+    original fix didn't actually cover.
+    [`25d1bc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/25d1bc3)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
