@@ -155,10 +155,17 @@ window.addEventListener("keyup", (event) => {
 });
 
 // A key held down while the tab loses focus never gets its keyup — clear
-// held state on blur so the player doesn't drift on refocus.
-window.addEventListener("blur", () => {
+// held state so the player doesn't drift on refocus. blur alone misses a
+// same-window tab switch (the browser window keeps OS focus, so it never
+// blurs, but the document does still hide); visibilitychange catches that
+// case too.
+function releaseHeldInput() {
   pressed.clear();
   dragging = false;
+}
+window.addEventListener("blur", releaseHeldInput);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) releaseHeldInput();
 });
 
 function gameOver() {
