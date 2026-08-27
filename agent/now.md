@@ -7,66 +7,69 @@ deliverable: comp4020-crit5-baishi
 
 ## State
 
-Fourth run on `comp4020-crit5-baishi`, 143h to cutoff — still deepen phase,
-not the last run. Worked the exact list the third run's `now.md` had
-flagged as untried: `pnpm audit`/`outdated`, the 200%-zoom reflow check,
-and a prose/copy pass.
+Fifth run on `comp4020-crit5-baishi`, 136h to cutoff — still deepen phase,
+not the last run. Worked the exact two angles the fourth run's `now.md`
+had flagged as genuinely untried, both came back "checked, confirmed
+correct" — no code change, no commit:
 
-1. **`pnpm audit`: found 7 real vulnerabilities (2 high, 5 moderate) in
-   transitive dev-tooling deps (`undici` via `jsdom`, `postcss`/`nanoid`
-   via `vite`'s toolchain). Fixed.** A plain `pnpm update` — in-range only,
-   no pin's ceiling raised — bumped `vite` 8.1.5→8.2.2 and `vitest`
-   4.1.10→4.1.11 and cleared every finding; `pnpm check` stayed green.
-   `pnpm outdated`'s other entries (`@types/jsdom`, `@types/node`,
-   `typescript`) are all major bumps, correctly left alone, matching the
-   established distinction.
-   [`ae3fa91`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/ae3fa91)
-2. **200%-zoom reflow check: found a squash, investigated, concluded it's
-   a testing-technique artifact, not a real bug — no code change.** This
-   is a canvas game whose pixel buffer is only resynced to its CSS box on
-   a `resize` event. Forcing zoom via `documentElement.style.zoom` doesn't
-   fire `resize` and doesn't change `window.innerWidth`, so the stale
-   buffer stretches to the new (differently-proportioned) box and every
-   circle renders as an ellipse. Before treating this as a defect: real
-   desktop browser zoom *does* resize the layout viewport and *does* fire
-   `resize`, which the app already handles correctly (confirmed round
-   circles at both marking viewports under ordinary use); real mobile
-   pinch-zoom *never* resizes the layout viewport at all (confirmed via
-   web search — pinch-zoom only changes the visual viewport, not the
-   layout viewport `getBoundingClientRect()` reads from), so it can't
-   desync the buffer either. Neither real zoom mechanism can reach this
-   state. See the new `MEMORY.md` entry below — this generalises to any
-   future crit with a JS-driven canvas resize.
-3. **Prose/copy pass: nothing to fix.** Checked the meta description ("a
-   falling-circle dodge game where colour, not distance, decides whether a
-   hit is safe") against `isFatalCollision` directly — accurate: overlap
-   alone is never fatal, only a hue mismatch is. `h1`, nav copy, and the
-   `#announcer` text (empty until game-over, then final score) all matched
-   actual behaviour. Very little copy on this page, so a small pass, but a
-   genuine one, not skipped.
+1. **Real pointer-drag test of drag-to-move.** Only keyboard movement and
+   the swap button's click had ever had genuine non-keyboard input driven
+   against them before this. Added a temporary `window.__debug` getter
+   (`player.x`/`dragging`/`state`), rebuilt, drove a genuine
+   `agent-browser mouse down` → `mouse move` → `mouse move` → `mouse up`
+   drag, and confirmed `player.x` tracked the real pointer position at
+   every step and held at the release point (no snap-back) — the pointer
+   code path (`pointerdown`/`pointermove` in `main.ts`) works correctly,
+   independent of the keyboard path already checked previously. Reverted
+   the debug hook before finishing; `git status` clean.
+2. **Live `prefers-reduced-motion` check of the swap button's pulse.** The
+   `pulse = prefersReducedMotion ? 0 : Math.sin(...)*2` branch in `draw()`
+   had never been observed live (only crit-1's marquee had this kind of
+   check before). Sampled a single canvas pixel at the pulse's boundary
+   radius via `ctx.getImageData` repeatedly over ~1.5s: with the OS
+   preference off, the sample genuinely flickered between the dashed
+   stroke colour and the background as the animation ran; with
+   `agent-browser set media reduced-motion` + a fresh reload, the same
+   sample stayed pinned to background the whole time. Confirms the branch
+   is actually inert live, not just present in source.
 
-`pnpm check` green throughout (21 tests, unchanged). Fresh `pnpm preview`
-console-clean at both marking viewports post-dependency-bump. Two commits
-this run (the dependency update, the `PROCESS.md` citation), pushed to
-`origin/main` (`f1881aa`). `PROCESS.md` now at 9 cited moments.
+Also re-ran `pnpm audit` (still clean) and `pnpm outdated` (same four
+major-version-only entries, correctly left alone) as a quick drift check
+— no change since the fourth run's dependency bump. `pnpm check` green
+throughout (21 tests). No commits this run: nothing found needed one, and
+manufacturing a diff to have one would be the busywork the doctrine warns
+against.
+
+Also found and recorded a real environment quirk while running the drag
+test: `agent-browser set viewport` does not persist across a later
+`agent-browser open` in this sandbox — it silently reverts to a smaller
+default, which caused a real misclick (`elementFromPoint` returning
+`null`) until `set viewport` was reissued post-navigation. Written up in
+`MEMORY.md`'s Environment section for future runs.
 
 ## Next action
 
-Still mid-deepen, no reflection yet — correct this far from cutoff. What's
-now genuinely untried:
+This closes out the fourth run's flagged list — the self-administerable
+technical angle list for this repo (html-validate, Lighthouse, axe-core,
+keyboard tab order, scripted-bot difficulty ramp, tap-highlight,
+palette/CVD safety, audit/outdated, zoom-reflow, prose-copy,
+pointer-drag, reduced-motion) is now fully worked at least once.
 
-- The real human-timed five-minute session (open thread for the studio
-  crit itself, not self-administerable — noted again, not newly found).
-- That's close to the bottom of the self-administerable technical list for
-  this repo: html-validate, Lighthouse, axe-core, keyboard tab order, the
-  scripted-bot difficulty ramp, tap-highlight, palette/CVD safety, audit,
-  zoom-reflow and prose-copy have all now been run at least once. A future
-  run reaching for a "genuinely untried" angle should consider: a real
-  pointer-drag test of the player-drag control (only keyboard movement and
-  the swap button's click have been driven with real input so far, per a
-  grep of this session's own testing — worth confirming next run whether
-  drag-to-move has had a genuine `agent-browser mouse move` pass, as
-  distinct from keyboard `A`/`D`), and whether `prefers-reduced-motion`
-  actually kills the swap button's pulse animation live (the code branches
-  on it in `draw()` but it's never been observed live via `agent-browser
-  set media reduced-motion`, unlike crit-1's marquee which was).
+The one open thread that has recurred across every run so far and is
+still genuinely open: **the real human-timed five-minute play session**
+— this can't be self-administered by an agent and needs the studio crit
+itself (or a human) to judge whether the difficulty ramp and collision
+feel fair to a first-time player, as distinct from the scripted-bot
+difficulty-ramp check already done (a bot proves the ramp doesn't become
+an unfair wall arithmetically; it doesn't judge whether the *feel* is
+fun).
+
+A future run reaching for a fresh angle beyond that should re-read
+`main.ts`/`game-logic.ts`/`styles.css` fresh rather than re-running the
+same battery a third time on unchanged code — per the doctrine's own
+"exhausted sensor battery ≠ nothing left to find" lesson (see crit-4's
+history in `MEMORY.md`), a fresh read of the brief's own clauses against
+the current code, or a fresh CSS-property-literacy pass (forced-colors,
+tap-highlight-style gaps), is more likely to surface something real than
+another repeat of a check already run clean multiple times. Nothing
+currently flagged as untried beyond the human session.

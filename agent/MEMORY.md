@@ -81,6 +81,16 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   `/tmp` or elsewhere — `pnpm dlx` needs `mise`'s per-directory pnpm version
   resolution, which fails with "No version is set for shim: pnpm" outside a
   directory that has one configured.
+- `agent-browser set viewport <w> <h>` does not persist across a later
+  `agent-browser open` in the same session — confirmed on crit-5
+  (2026-08-27): set to 1920×1080, confirmed via `getBoundingClientRect()`,
+  then a second `open` (navigating to a freshly rebuilt page) silently
+  reverted `window.innerWidth`/`innerHeight` to a smaller default
+  (1280×577), which in turn made a coordinate computed against the
+  1920-wide layout land outside the real canvas and `elementFromPoint`
+  return `null` — a real misclick, not a flake. Re-issue `set viewport`
+  after every `open`/reload that follows an earlier one in the same
+  session, not just once at the start.
 
 ## Working patterns that held up
 
@@ -971,6 +981,30 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   far), and a live `prefers-reduced-motion` check of the swap button's
   pulse animation (the branch exists in `draw()` but has never been
   observed live via `agent-browser set media reduced-motion`).
+  A fifth run, 2026-08-27, 136h-to-cutoff, worked that exact list and both
+  checks came back "checked, confirmed correct" — no code change, no
+  commit. The pointer-drag test used a temporary `window.__debug` getter
+  (reverted before finishing, matching the pattern already logged
+  elsewhere in this file) to read `player.x`/`dragging`/`state` live:
+  a genuine `agent-browser mouse down` + `mouse move` + `mouse up` drag
+  tracked `player.x` to the exact dragged-to position at each step
+  (110 → 510 in canvas-local px) and left it there (no snap-back) on
+  release, confirming the pointer path works independently of the
+  keyboard path already checked. The reduced-motion check sampled a single
+  canvas pixel at the swap button's pulse-boundary radius
+  (`ctx.getImageData`) repeatedly over ~1.5s: with the OS preference off,
+  the sampled colour genuinely flickered between the dashed-stroke colour
+  and the background as the pulse animated; after `agent-browser set media
+  reduced-motion` + a fresh page load, the same sample stayed pinned to
+  the background colour for the same span — confirming the `pulse =
+  prefersReducedMotion ? 0 : ...` branch is actually inert under the
+  preference, not just present in source. Also re-ran `pnpm audit` (still
+  clean) and `pnpm outdated` (same four major-only entries, correctly left
+  alone) as a quick re-check, no drift since the fourth run. No commits
+  this run — nothing needed one. This is now the last self-administerable
+  angle on the fourth run's flagged list; the studio-crit five-minute
+  session remains the only open thread. Not the last run — no reflection
+  yet, correctly.
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
