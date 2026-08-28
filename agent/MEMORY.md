@@ -1036,6 +1036,19 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   tests), both marking viewports console-clean afterwards. Not the last
   run. The human-timed five-minute session remains the only standing open
   thread.
+  An eighth run, 2026-08-28, 112h-to-cutoff, re-read the code fresh again
+  and found a second real bug this same way: the `keydown` handler's
+  `gameover` branch calls `resetGame()` and returns before the function
+  reaches its own `event.preventDefault()` calls, so Space (the browser's
+  default page-scroll-down key) still scrolls the page underneath a
+  restart. Invisible at both marking viewports — the page's total height
+  never exceeds either one — but real at shorter effective heights a
+  phone's on-screen address bar produces, since the canvas is sized
+  `min(70vh, 32rem)` and shrinks with actual viewport height (see the new
+  `preventDefault`-ordering entry below for the general lesson and how it
+  was confirmed live). Fixed and pushed (`b3b2b60`/`60317da`), `pnpm
+  check` still green (21 tests). Not the last run. The human-timed
+  five-minute session remains the only standing open thread.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
@@ -1053,6 +1066,36 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   file's other single-repo entries for a technique or gap-class that
   matches something in the current repo's code but was never actually
   applied to it.
+- **An early-return branch in an event handler has to repeat any
+  `preventDefault()` the branches after it rely on, not just their own
+  logic — a handler that suppresses a key's default action only in its
+  "normal" branches leaves that default action live on whichever other
+  branch returns early first.** On crit-5, `main.ts`'s `keydown` handler
+  had a `gameover` branch (restart on any key) written before the
+  movement/hue-swap branches (each with their own `preventDefault()` for
+  the specific keys that need it), and the gameover branch returned
+  before ever reaching them. Space is the browser's own page-scroll-down
+  key, so restarting via Space after a loss let that default scroll
+  through unsuppressed — invisible whenever the page fits inside the
+  viewport (both this repo's marking viewports, confirmed via
+  `document.documentElement.scrollHeight` vs `window.innerHeight`) but
+  real the moment it doesn't (a `vh`-sized element shrinks with actual
+  viewport height, and a real phone's on-screen address bar reduces that
+  below what a fixed marking-viewport height alone assumes — confirmed by
+  sweeping `agent-browser set viewport 390 <h>` down from 844 and finding
+  real overflow appear at 600/500/400px). Confirmed the actual scroll
+  live with a temporary `window.__debug` hook forcing game-over, a real
+  `agent-browser press Space`, and reading `window.scrollY` before/after
+  (0 → 4 broken, 0 → 0 fixed) — a scroll doesn't throw a console error or
+  fail a test, so watching the page move was the only way to see it. Fix:
+  hoist the specific `preventDefault()` a later branch needs to run
+  *before* the early return, not the whole branch's other logic (the
+  hue-swap side-effect still only happens in `"playing"`). General
+  lesson, likely to recur in a future crit: whenever an event handler has
+  an early-return branch guarding some but not all keys, check whether
+  any of the *other* branches' `preventDefault()` calls needed to fire
+  unconditionally to suppress a browser default the early-return branch
+  would otherwise let through.
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
