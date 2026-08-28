@@ -141,6 +141,12 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
   }
   if (state === "gameover") {
+    // A key held down at the moment of a fatal collision --- the likely case,
+    // since dying usually happens mid-dodge --- keeps sending repeat keydowns
+    // for as long as it stays physically held. Restarting on those wipes the
+    // game-over screen before the player ever sees it; only a genuine fresh
+    // keydown (a release-and-repress, or a different key) should restart.
+    if (event.repeat) return;
     resetGame();
     return;
   }
