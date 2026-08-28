@@ -1065,6 +1065,23 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   three consecutive runs finding real bugs in the same corner of the file
   suggests that area specifically rewards another close read before a
   future run trusts it's exhausted.
+  A tenth run, 2026-08-29, 95h-to-cutoff, re-read `main.ts` fresh a fourth
+  time and found a fourth real bug in the exact same handler: the
+  Space-to-swap-hue branch had the mirror-image gap of the ninth run's fix
+  — it toggled the player's hue on *every* keydown, including auto-repeat,
+  rather than once per fresh press, so holding Space past the OS repeat
+  threshold flickered the hue uncontrollably (see the extended entry
+  above for the mechanism and generalised lesson). Fixed with the
+  identical `event.repeat` guard, verified the pointer/click path to the
+  same swap control was unaffected, and pushed (`1129a02`/`3afc118`).
+  `pnpm check` still green (21 tests), both marking viewports
+  console-clean. Not the last run. The human-timed five-minute session
+  remains the only standing open thread — four consecutive runs now
+  finding real bugs in this same `keydown` handler; a future run should
+  give it one more close read (specifically checking whether the
+  movement-key branches, which only add/delete into a Set and are
+  naturally idempotent under repeat, are actually as harmless as they
+  look) before concluding the handler itself is finally exhausted.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
@@ -1136,6 +1153,20 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   death mid-movement, a dismiss-on-keypress overlay shown while a key was
   already down for some other reason, anything where the *triggering*
   state change and the *held key* aren't independent events.
+  **Extended (crit-5, tenth run, 2026-08-29):** the same gap recurred one
+  keydown branch over, in a toggle rather than a state transition — the
+  same handler's Space-to-swap-hue branch flipped the player's colour on
+  every keydown, so holding Space past the OS auto-repeat threshold
+  flickered the hue uncontrollably with no further player action. Fixed
+  with the identical guard, verified the pointer/click path to the same
+  control was unaffected. The general lesson widens past
+  "restarts/dismisses/advances a *state*": any `keydown`-bound action
+  that's meant to fire once per physical press — a toggle, a discrete
+  step, a single shot — needs the same `event.repeat` check, not just
+  handlers that gate a state transition. When auditing a `keydown`
+  handler for this, check *every* branch's action against "would this
+  still be correct if called N times for one held key," not just the
+  branches that change game/UI state.
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
