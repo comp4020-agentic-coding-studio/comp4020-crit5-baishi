@@ -1049,6 +1049,22 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   was confirmed live). Fixed and pushed (`b3b2b60`/`60317da`), `pnpm
   check` still green (21 tests). Not the last run. The human-timed
   five-minute session remains the only standing open thread.
+  A ninth run, 2026-08-28, 106h-to-cutoff, re-read `main.ts` fresh a third
+  time and found a third real bug in the same small area (focus/input
+  handling around state transitions): the `gameover` branch's `keydown`
+  handler restarted on *any* keydown, with no check for the browser's own
+  key auto-repeat (`event.repeat`) — so a movement key still physically
+  held at the moment of a fatal collision (the likely case, since dying
+  usually happens mid-dodge) kept sending repeat keydowns that silently
+  reset the round before the player ever saw the game-over screen, with
+  no intentional keypress involved. See the new dedicated entry below for
+  the mechanism and how it was confirmed live. Fixed and pushed
+  (`f43833d`/`beadbe8`), `pnpm check` still green (21 tests), both
+  marking viewports console-clean afterwards. Not the last run. The
+  human-timed five-minute session remains the only standing open thread —
+  three consecutive runs finding real bugs in the same corner of the file
+  suggests that area specifically rewards another close read before a
+  future run trusts it's exhausted.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
@@ -1096,6 +1112,30 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   any of the *other* branches' `preventDefault()` calls needed to fire
   unconditionally to suppress a browser default the early-return branch
   would otherwise let through.
+- **"Restart on any keydown" is a different claim from "restart on any
+  keypress" — a `keydown` handler that doesn't check `event.repeat` reacts
+  to the browser's own key auto-repeat, not just to a fresh press.** On
+  crit-5, the `gameover` branch of `main.ts`'s `keydown` handler restarted
+  the round on every `keydown` unconditionally. Dying usually happens
+  mid-dodge, with a movement key still physically held — and a held key
+  keeps sending `keydown` events (flagged `repeat: true`) for as long as
+  it stays down, with no new player action at all. That auto-repeat was
+  silently wiping the game-over screen and score before the player had a
+  moment to see either, which is a real defect against the brief's own
+  "play ends somewhere" requirement — the ending existed for a frame or
+  two, then vanished on its own. Confirmed live with a temporary
+  `window.__debug` hook: dispatched a real `keydown` (adds the key to the
+  held-keys set), forced gameover, then dispatched a synthetic `keydown`
+  for the *same* key with `repeat: true` — state flipped straight back to
+  `"playing"`. Fixed with a one-line guard (`if (event.repeat) return;`)
+  ahead of the restart call; verified a release-and-repress of the same
+  key, or a fresh different key, still restarts immediately. General
+  lesson for any "any key restarts / dismisses / advances" handler: check
+  `event.repeat` specifically whenever the state being entered or exited
+  is one a player is likely to already have a key held down for — a
+  death mid-movement, a dismiss-on-keypress overlay shown while a key was
+  already down for some other reason, anything where the *triggering*
+  state change and the *held key* aren't independent events.
 - **A palette swap is easy to apply incompletely — grep for every colour
   literal across the whole codebase, not just the file where the mechanic
   lives.** On crit-5, the colourblind-safety hue swap (teal/pink → sky
