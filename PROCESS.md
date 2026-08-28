@@ -150,6 +150,24 @@ find it.
     key, still restarts immediately.
     [`f43833d`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/f43833d)
 
+13. **The colour-swap toggle had the same auto-repeat gap as the gameover
+    restart, in the other direction.** Moment 12 fixed the gameover branch
+    treating every `keydown` as a restart; the same handler's Space-to-swap
+    branch had never been checked against the identical failure mode ---
+    toggling on every `keydown` rather than every fresh press. Confirmed
+    live with a temporary debug hook: one real Space keydown flipped the
+    player's hue once as expected, but three synthetic `repeat: true`
+    keydowns for the same key --- exactly what the browser sends for as
+    long as Space stays physically held past the OS auto-repeat threshold
+    --- flipped it three more times, uncontrollably, with no further
+    player action. A toggle bound to a key a player might reasonably hold
+    (the same key used to move, in some games, or just a slightly long
+    tap) needs the same repeat guard as a restart-on-keypress does. Fixed
+    with the identical `if (event.repeat) return;` guard; verified the
+    click/pointer path to the same swap button still toggles once per
+    click, untouched by the change.
+    [`1129a02`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/1129a02)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
