@@ -157,6 +157,11 @@ window.addEventListener("keydown", (event) => {
     pressed.add("right");
     event.preventDefault();
   } else if (event.key === " " || event.key === "Spacebar") {
+    // A toggle, not a hold: the browser's own key auto-repeat would otherwise
+    // keep flipping the hue for as long as Space stays physically held, the
+    // same repeat-vs-fresh-press distinction already guarded on gameover
+    // restart above.
+    if (event.repeat) return;
     player.hue = otherHue(player.hue);
   }
 });
