@@ -134,6 +134,21 @@ find it.
     failed test either --- a scroll isn't a JS error, so this only surfaces
     by actually watching the page move.
     [`b3b2b60`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/b3b2b60)
+12. **The restart-on-any-key rule didn't account for a key the player was
+    already holding.** Dying usually happens mid-dodge, with a movement key
+    still physically down --- and a held key keeps sending `keydown` events
+    (the browser's own auto-repeat, flagged `event.repeat: true`) for as
+    long as it stays down. The gameover branch treated every `keydown` as a
+    restart request, so that auto-repeat silently reset the round before the
+    player had a moment to see the game-over screen or their score, without
+    them doing anything they'd recognise as "pressing a key to restart."
+    Confirmed live with a temporary debug hook: forcing gameover with
+    ArrowLeft still held, then dispatching a synthetic `repeat: true`
+    keydown for the same key, flipped state straight back to `"playing"`
+    under the old code. Fixed by ignoring repeat keydowns in the gameover
+    branch --- a release-and-repress of the same key, or any other fresh
+    key, still restarts immediately.
+    [`f43833d`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/f43833d)
 
 ## Before you ship
 
