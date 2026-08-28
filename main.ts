@@ -133,6 +133,13 @@ canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
 
 window.addEventListener("keydown", (event) => {
+  // Space is the browser's own page-scroll-down key, so the gameover branch
+  // below has to suppress it too, before returning early --- otherwise
+  // restarting after a loss on a short viewport (a real phone with its
+  // address bar still visible) also scrolls the page underneath the reset.
+  if (event.key === " " || event.key === "Spacebar") {
+    event.preventDefault();
+  }
   if (state === "gameover") {
     resetGame();
     return;
@@ -145,7 +152,6 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
   } else if (event.key === " " || event.key === "Spacebar") {
     player.hue = otherHue(player.hue);
-    event.preventDefault();
   }
 });
 
