@@ -116,6 +116,25 @@ find it.
     original fix didn't actually cover.
     [`25d1bc3`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/25d1bc3)
 
+11. **A short-viewport scenario, not one of the two marking viewports, is
+    where this one actually showed up.** The gameover branch of the keydown
+    handler restarts the round before the function reaches its
+    `event.preventDefault()` calls further down, so Space --- the browser's
+    own page-scroll-down key --- still scrolled the page underneath the
+    restart. Invisible at both marking viewports, where the page's total
+    height never exceeds the viewport, so `agent-browser` at 1920×1080 or
+    390×844 alone would never have caught it. Found by checking the page's
+    actual layout height against a range of shorter effective viewports ---
+    the real scenario is a phone with its address bar still on screen,
+    which reduces the usable height below what `390×844` alone assumes ---
+    and confirming live with a temporary debug hook (forced game-over,
+    dispatched a real `Space` keydown, read `window.scrollY` before and
+    after: 0 → 4 under the old code, 0 → 0 after moving the
+    `preventDefault()` ahead of the early return). No console error, no
+    failed test either --- a scroll isn't a JS error, so this only surfaces
+    by actually watching the page move.
+    [`b3b2b60`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/b3b2b60)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
