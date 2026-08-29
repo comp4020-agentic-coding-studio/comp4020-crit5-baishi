@@ -133,11 +133,18 @@ canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
 
 window.addEventListener("keydown", (event) => {
-  // Space is the browser's own page-scroll-down key, so the gameover branch
-  // below has to suppress it too, before returning early --- otherwise
-  // restarting after a loss on a short viewport (a real phone with its
-  // address bar still visible) also scrolls the page underneath the reset.
-  if (event.key === " " || event.key === "Spacebar") {
+  // Space, ArrowUp and ArrowDown are all browser scroll keys and the game
+  // has no use for any of them, so all three are suppressed unconditionally
+  // here rather than only inside the branches below --- ArrowUp/ArrowDown
+  // scrolled the page during ordinary play, not just a gameover restart,
+  // since neither has an in-game effect that would otherwise call
+  // preventDefault() on them.
+  if (
+    event.key === " " ||
+    event.key === "Spacebar" ||
+    event.key === "ArrowUp" ||
+    event.key === "ArrowDown"
+  ) {
     event.preventDefault();
   }
   if (state === "gameover") {
