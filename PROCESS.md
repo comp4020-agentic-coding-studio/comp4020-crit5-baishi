@@ -168,6 +168,24 @@ find it.
     click, untouched by the change.
     [`1129a02`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/1129a02)
 
+14. **A collision found by driving the drag through it, not by reading the
+    handlers separately.** `pointerdown`'s gameover branch and `pointermove`'s
+    drag branch had each been checked in isolation, but never against each
+    other in the one sequence that connects them: a fatal collision arriving
+    *while the pointer is still down*. `pointermove` never checked game
+    state, only `dragging`, and nothing had ever set `dragging` back to
+    `false` when the round ended out from under it --- there's no pointerup
+    to clear it, since the player never lifted their finger. Confirmed live
+    with a temporary debug hook: forced a collision mid-drag, then kept
+    moving the pointer, and watched `playerX` keep tracking it (310 → 460 →
+    610) while `state` stayed `"gameover"` --- the player circle visibly
+    slid under the dimmed overlay after the round had supposedly ended.
+    Fixed the same way the existing blur/visibilitychange handler already
+    clears held input: `gameOver()` now sets `dragging = false` itself, so
+    `pointermove`'s own `if (!dragging) return` guard takes over with no
+    further change needed there.
+    [`60ac9eb`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/60ac9eb)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
