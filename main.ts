@@ -133,17 +133,22 @@ canvas.addEventListener("pointerup", endDrag);
 canvas.addEventListener("pointercancel", endDrag);
 
 window.addEventListener("keydown", (event) => {
-  // Space, ArrowUp and ArrowDown are all browser scroll keys and the game
-  // has no use for any of them, so all three are suppressed unconditionally
-  // here rather than only inside the branches below --- ArrowUp/ArrowDown
-  // scrolled the page during ordinary play, not just a gameover restart,
-  // since neither has an in-game effect that would otherwise call
-  // preventDefault() on them.
+  // Space, the arrow keys, Home, End, PageUp and PageDown are all browser
+  // scroll keys and the game has no use for any of them, so all six are
+  // suppressed unconditionally here rather than only inside the branches
+  // below --- Home/End/PageUp/PageDown scrolled the page during ordinary
+  // play the same way ArrowUp/ArrowDown once did, confirmed live at a real
+  // short viewport, since none of the four has an in-game effect that would
+  // otherwise call preventDefault() on them.
   if (
     event.key === " " ||
     event.key === "Spacebar" ||
     event.key === "ArrowUp" ||
-    event.key === "ArrowDown"
+    event.key === "ArrowDown" ||
+    event.key === "Home" ||
+    event.key === "End" ||
+    event.key === "PageUp" ||
+    event.key === "PageDown"
   ) {
     event.preventDefault();
   }
