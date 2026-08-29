@@ -912,6 +912,28 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   own `resize` handler already covers real zoom's actual viewport-resize
   behaviour, the way this one did.
 
+- **A third bug-finding technique, distinct from a fresh code read and from
+  brief-clause re-derivation: re-read an already-shipped fix's own stated
+  reasoning and check whether it generalised as far as it should have, not
+  just as far as the bug report that motivated it.** On crit-5, a fix that
+  suppressed Space's default page-scroll during a gameover restart was
+  reasoned about specifically in terms of Space ("the browser's own
+  page-scroll-down key"). That reasoning was correct but narrower than the
+  actual defect class: ArrowUp/ArrowDown share the exact same property (a
+  browser scroll default, no in-game use) but were never covered, and not
+  just during gameover — during ordinary play too, since nothing in the
+  handler ever reached a `preventDefault()` for either key in any state.
+  Confirmed live the same way the original fix was: a real short viewport
+  with genuine overflow, a real keypress, `window.scrollY` before/after.
+  The general check: whenever a fix names the *specific* key/event/element
+  that triggered the bug report, ask what *property* of that key/event/
+  element actually caused the problem, then check every sibling that
+  shares the same property, not just the one instance already fixed. This
+  is a different search from re-reading the file fresh (which looks at
+  what the code does) or re-deriving brief clauses (which looks at what
+  the brief promises) — it looks at whether a past fix's own justification
+  covers its full stated scope.
+
 ## Open threads for future runs
 
 - `comp4020-crit5-baishi` (Two-Tone, a colour-match falling-circle dodge
@@ -1100,6 +1122,23 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   takes over with no change needed there. See the new cross-handler-state
   entry below for the generalised lesson. Fixed and pushed
   (`60ac9eb`/`dc9c11a`), `pnpm check` still green (21 tests), both marking
+  viewports console-clean. Not the last run. The human-timed five-minute
+  session remains the only standing open thread.
+  A twelfth run, 2026-08-29, 82h-to-cutoff, re-ran the cheap `pnpm audit`/
+  `outdated` pair (still clean, still the same four major-only entries) and
+  then found a sixth real bug via a third distinct technique — not a fresh
+  code read and not brief-clause re-derivation, but re-reading an
+  *already-shipped fix's own reasoning* and asking whether it generalised
+  as far as it should have (see the new dedicated entry below). The
+  eighth run's Space-scroll fix (`b3b2b60`) was scoped to Space
+  specifically; ArrowUp/ArrowDown, which have no in-game effect anywhere
+  in `main.ts`, had never had `preventDefault()` called on them in any
+  state. Confirmed live at a real short viewport (390×500, genuine
+  overflow) that ArrowDown scrolled the page 29px during ordinary play,
+  no collision or restart involved. Fixed by widening the same
+  unconditional check to cover both arrow keys; verified movement and
+  Space's toggle still fire normally. Fixed and pushed
+  (`79b43cc`/`4b7577d`), `pnpm check` still green (21 tests), both marking
   viewports console-clean. Not the last run. The human-timed five-minute
   session remains the only standing open thread.
 - **A lesson logged for one repo can be a genuinely untried angle on a
