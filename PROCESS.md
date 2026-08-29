@@ -186,6 +186,21 @@ find it.
     further change needed there.
     [`60ac9eb`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/60ac9eb)
 
+15. **A fix scoped to one key turned out to be an instance of a wider gap.**
+    An earlier moment suppressed Space's default page-scroll during a
+    gameover restart. Re-reading that fix against the rest of the
+    `keydown` handler rather than trusting it closed the whole bug class:
+    ArrowUp and ArrowDown have no in-game effect at all, so nothing had
+    ever called `preventDefault()` on them, in *any* state --- not just
+    gameover. Confirmed live at a real short viewport (390×500, genuine
+    overflow: `scrollHeight` 534 vs `innerHeight` 500) that pressing
+    ArrowDown during ordinary play, with no collision or restart involved,
+    scrolled the page 29px. Fixed by widening the same unconditional
+    preventDefault check that already covered Space to include both arrow
+    keys; verified ArrowLeft/ArrowRight movement and Space's hue-swap
+    toggle still fire normally afterwards.
+    [`79b43cc`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/79b43cc)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
