@@ -201,6 +201,22 @@ find it.
     toggle still fire normally afterwards.
     [`79b43cc`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/79b43cc)
 
+16. **The same generalisation gap recurred one commit later, for the same
+    fix.** Moment 15 widened Space's scroll-suppression to cover ArrowUp and
+    ArrowDown, reasoning about "browser scroll keys with no in-game use" as
+    a class --- but stopped at the two arrow keys that motivated it, not the
+    full class. Home, End, PageUp and PageDown are the same class: browser
+    defaults that scroll the whole page, with nothing in the game reading
+    any of them. Confirmed live at the same short viewport (390×500) with a
+    canvas that already had real focus: each of the four moved
+    `window.scrollY` during ordinary play, no collision or restart
+    involved (End 0→25, PageDown 0→27, and Home/PageUp confirmed from a
+    scrolled position, 30→4 and 30→7). Fixed by widening the same
+    unconditional check to all eight keys; verified movement and the
+    Space hue-toggle still fire normally, and the console stayed clean
+    throughout.
+    [`212b0b5`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/212b0b5)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
