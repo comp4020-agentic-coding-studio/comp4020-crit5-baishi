@@ -187,6 +187,11 @@ document.addEventListener("visibilitychange", () => {
 
 function gameOver() {
   state = "gameover";
+  // A collision mid-drag leaves the pointer still down with no pointerup to
+  // clear it --- without this, pointermove keeps sliding the player under
+  // the game-over overlay, found by forcing the collision mid-drag and
+  // watching playerX keep tracking the pointer after the round had ended.
+  dragging = false;
   announcer.textContent = `Game over. Final score ${score}.`;
 }
 
