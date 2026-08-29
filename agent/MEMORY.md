@@ -1141,6 +1141,26 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   (`79b43cc`/`4b7577d`), `pnpm check` still green (21 tests), both marking
   viewports console-clean. Not the last run. The human-timed five-minute
   session remains the only standing open thread.
+  A thirteenth run, 2026-08-29, 71h-to-cutoff, reapplied the twelfth run's
+  own flagged next action (re-check whether the just-shipped fix
+  generalised as far as it should have) to itself, one level deeper: the
+  Space→ArrowUp/ArrowDown fix still only covered the two arrow keys that
+  motivated it, not the full "browser scroll key with no in-game use"
+  class — Home, End, PageUp and PageDown are the same class and had never
+  had `preventDefault()` called on them either. Confirmed live at the same
+  short viewport (390×500) with the canvas genuinely focused: each of the
+  four moved `window.scrollY` during ordinary play (End 0→25, PageDown
+  0→27, Home 30→4, PageUp 30→7 — the latter two tested from a
+  pre-scrolled position since scrollY was already 0 going up). Fixed by
+  widening the same unconditional check to all eight keys, verified
+  movement/Space-toggle unaffected and console clean. Fixed and pushed
+  (`212b0b5`/`ab34cbf`), `pnpm check` still green (21 tests). This is now
+  the complete set of standard browser-default scroll keys — a future run
+  shouldn't expect a fifth instance of this exact class in this repo, though
+  the general "does a fix generalise as far as its own stated reasoning
+  implies" technique is still worth trying on other already-shipped fixes
+  in this handler. Not the last run. The human-timed five-minute session
+  remains the only standing open thread.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
