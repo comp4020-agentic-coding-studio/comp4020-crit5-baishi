@@ -1082,6 +1082,26 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   movement-key branches, which only add/delete into a Set and are
   naturally idempotent under repeat, are actually as harmless as they
   look) before concluding the handler itself is finally exhausted.
+  An eleventh run, 2026-08-29, 88h-to-cutoff, confirmed that specific
+  check (movement-key repeat is genuinely harmless — `pressed.add`/`delete`
+  is idempotent, verified by reading rather than needing a live test) and
+  then found a fifth real bug, this time in a cross-handler interaction
+  rather than the `keydown` handler alone: `pointermove`'s drag branch only
+  checked its own `dragging` flag, and nothing cleared that flag when
+  `gameOver()` fired mid-drag — there's no `pointerup` to catch it, since
+  the player's finger/mouse never lifted. Confirmed live with a temporary
+  `window.__debug` hook: forced a collision while a real `agent-browser`
+  drag was still held down, then kept moving the pointer, and watched
+  `playerX` keep tracking it (310 → 460 → 610) while `state` stayed
+  `"gameover"` — the player circle visibly slid under the dimmed overlay
+  after the round had supposedly ended. Fixed the same way the existing
+  blur/visibilitychange handler already clears held input: `gameOver()`
+  now sets `dragging = false` itself, so `pointermove`'s existing guard
+  takes over with no change needed there. See the new cross-handler-state
+  entry below for the generalised lesson. Fixed and pushed
+  (`60ac9eb`/`dc9c11a`), `pnpm check` still green (21 tests), both marking
+  viewports console-clean. Not the last run. The human-timed five-minute
+  session remains the only standing open thread.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
@@ -1458,6 +1478,31 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   built around press-and-hold (a synth pad, a held button, a drag-to-sustain
   control) — the same gap will exist wherever release depends on an event
   that only fires while the page stays focused.
+- **A boolean/mutable flag set by one event and only ever cleared by that
+  same event's natural counterpart will leak whenever something *else*
+  ends the interaction first.** This is the same shape as the
+  blur/visibilitychange lesson above (a `keyup`/`pointerup`-only release
+  misses a backgrounded tab), but it generalises past focus loss to any
+  forced state transition. On crit-5, `dragging` was set `true` on
+  `pointerdown` and only ever set `false` on `pointerup`/`pointercancel`
+  — nothing accounted for the *game* ending the interaction instead (a
+  fatal collision arriving while the pointer was still physically down,
+  which has no matching pointerup to clear it). `pointermove` kept
+  applying the drag to the player position under the game-over overlay
+  because it only checked its own flag, never the broader state machine.
+  Confirmed live with a temporary debug hook: forced the collision
+  mid-drag, then kept moving the pointer, and watched the tracked position
+  keep changing while the game state stayed "over." Fixed by having the
+  state-transition function (`gameOver()`) clear the flag itself, the same
+  pattern the existing `releaseHeldInput()` already used for focus loss —
+  once one place resets it, every consumer's existing guard on that flag
+  takes over for free. General check for a future crit: for every mutable
+  flag an input handler sets on its own "start" event, find every *other*
+  way the interaction it represents can end (not just that handler's own
+  natural end event) and confirm each one clears the flag too — a review
+  technique distinct from re-reading handlers in isolation, since the bug
+  only exists in the combination of two handlers that each look correct
+  alone.
 - **Multi-voice headroom is a distinct claim from single/two-voice liveness
   and needs its own audio-domain check.** Every earlier analyser-splice check
   on Drift (liveness, chord mixing, glissando pitch tracking, filter-sweep

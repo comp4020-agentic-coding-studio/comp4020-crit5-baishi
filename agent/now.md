@@ -7,37 +7,43 @@ deliverable: comp4020-crit5-baishi
 
 ## State
 
-Tenth run on `comp4020-crit5-baishi`, 95h to cutoff — still deepen phase,
-not the last run. `git status` was clean and `origin/main` matched local
-`HEAD` (`782d95d`) at the start, confirming the ninth run's hand-off (the
-gameover auto-repeat restart fix) was accurate.
+Eleventh run on `comp4020-crit5-baishi`, 88h to cutoff — still deepen
+phase, not the last run. `git status` was clean and `origin/main` matched
+local `HEAD` (`f5c4603`) at the start, confirming the tenth run's
+hand-off (the Space-toggle auto-repeat fix) was accurate.
 
-Re-read `main.ts` fresh again in the same focus/input-handling area that's
-now produced a real bug on four consecutive runs. This time: the
-`keydown` handler's Space-to-swap branch (toggle the player's hue) had the
-mirror-image gap of the gameover-restart bug fixed last run — it reacted
-to *every* keydown, including the browser's own auto-repeat, rather than
-just a fresh press. Confirmed live with a temporary `window.__debug` hook
-(reverted before committing, `git diff` checked clean of leakage): one
-real Space keydown flipped the hue once as expected; three synthetic
-`repeat: true` keydowns for the same key then flipped it three more
-times, uncontrollably. Holding Space past the OS auto-repeat threshold —
-plausible for a player who taps and holds a beat too long, or means to
-hold it deliberately — would flicker the hue with no further input from
-them. Fixed with the identical `if (event.repeat) return;` guard already
-used for the gameover branch. Verified the swap button's pointer/click
-path still toggles once per click, untouched by the change (a mid-test
-false alarm on that path turned out to be leftover `agent-browser`
-pointer-capture state from an unmatched `mouse down` in an earlier probe,
-not a real bug — resolved by re-testing with a clean move→down→up
-sequence).
+Worked the tenth run's flagged next action: confirmed the movement-key
+branches (`pressed.add`/`delete` in the `keydown`/`keyup` handlers) are
+genuinely harmless under auto-repeat — a repeat keydown just re-adds an
+already-present Set member, a no-op. No test needed beyond reading it;
+recorded as a real "checked, confirmed correct" outcome, not a fifth bug
+in that handler.
+
+Then found a fifth real bug anyway, in a cross-handler interaction rather
+than the `keydown` handler alone: `pointermove`'s drag branch only checked
+its own `dragging` flag, and nothing cleared that flag when a fatal
+collision ended the round mid-drag — there's no `pointerup` to catch it,
+since the pointer never lifted. Confirmed live with a temporary
+`window.__debug` hook (reverted before committing, `git diff` checked
+clean): forced a collision while a real `agent-browser` drag was still
+held down, then kept moving the pointer, and watched `playerX` keep
+tracking it (310 → 460 → 610) while `state` stayed `"gameover"` — the
+player circle visibly slid under the dimmed game-over overlay. Fixed the
+same way the existing blur/visibilitychange handler already clears held
+input: `gameOver()` now sets `dragging = false` itself, so
+`pointermove`'s existing `if (!dragging) return` guard takes over with no
+further change needed there. Wrote up the generalised lesson in
+`MEMORY.md` (a flag cleared only by its own natural end-event will leak
+whenever something else ends the interaction first — same shape as the
+blur/visibilitychange lesson, but for any forced state transition, not
+just focus loss).
 
 `pnpm check` green throughout (21 tests), a final live pass at both
-marking viewports against a real `pnpm preview` with a clean console,
-preview server shut down.
+marking viewports against a real `pnpm preview` with a clean console
+(screenshots looked correct at both), preview server shut down each time.
 
-Committed the fix (`1129a02`) and a `PROCESS.md` update citing it as a
-13th moment (`3afc118`), pushed to `origin/main`.
+Committed the fix (`60ac9eb`), a `PROCESS.md` update citing it as a 14th
+moment (`dc9c11a`), pushed to `origin/main`.
 
 ## Next action
 
@@ -48,22 +54,19 @@ itself (or a human) to judge whether the difficulty ramp and collision
 feel fair to a first-time player, distinct from the scripted-bot
 difficulty-ramp check already done.
 
-No other self-administerable technical angle is currently flagged. The
-"re-read the code fresh" lesson has now found a real bug on four
-consecutive runs (blur/visibilitychange, the gameover Space-scroll leak,
-the gameover auto-repeat restart, now the swap-toggle auto-repeat) — all
-four in the same small area of `main.ts` (focus/input handling around
-state transitions and the `keydown` handler specifically). A future run
-should check that handler once more before trusting it's exhausted: the
-one input path not yet stress-tested against auto-repeat is the
-movement keys (`pressed.add`/`pressed.delete`) — but those are add/delete
-into a Set, which is naturally idempotent under repeat, so a repeat
-keydown there is very likely already harmless (worth a quick confirm,
-not a deep investigation). If a fresh read of the whole file turns up
+No other self-administerable technical angle is currently flagged. Five
+consecutive runs have now found real bugs by re-reading `main.ts` fresh
+each time (four in the `keydown` handler itself, this one in the
+`pointermove`/`gameOver` interaction) — a future run should still try a
+fresh read before assuming the file is exhausted, but if that turns up
 nothing, the cross-repo-lesson-check technique (grep other single-repo
-`MEMORY.md` entries for a gap-class never yet tried against this repo) is
-the next fallback, not a repeat of
+`MEMORY.md` entries — e.g. crit-4's touch-action scoping, forced-colors
+border fix — for a gap-class never yet tried against this repo's actual
+markup) is the next fallback, not a repeat of
 html-validate/Lighthouse/axe-core/keyboard-tab-order/scripted-bot-ramp/
 tap-highlight/CVD-safety/audit-outdated/zoom-reflow/prose-copy/
 pointer-drag/reduced-motion/real-resize/blur-visibilitychange on
-unchanged code.
+unchanged code. (Checked this run: crit-4's forced-colors
+`appearance: none; border: none` gap doesn't apply here — the only
+custom-shaped interactive element, the swap button, is drawn on canvas,
+not styled via CSS background/box-shadow on a DOM button.)
