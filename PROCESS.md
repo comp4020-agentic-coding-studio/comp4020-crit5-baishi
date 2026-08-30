@@ -217,6 +217,23 @@ find it.
     throughout.
     [`212b0b5`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/212b0b5)
 
+17. **A shared `dragging` flag let one pointer end another's drag.** The
+    drag logic used a single boolean set on `pointerdown` and cleared on
+    `pointerup`/`pointercancel` --- fine for a mouse, but on a touchscreen
+    an incidental second touch (a palm edge, a bracing finger) releasing
+    off the canvas cleared that same flag regardless of which pointer it
+    belonged to, silently stopping the first pointer's still-held drag
+    from tracking any further movement. Confirmed live with a temporary
+    debug hook and two independent synthetic pointer identities: pointer A
+    dragged correctly, pointer B touched down and lifted elsewhere on the
+    canvas, and pointer A's next move was then dropped even though it had
+    never been released. Fixed by tracking the drag by `pointerId`
+    (`draggingPointerId`) instead of a bare flag, so only the pointer that
+    started the drag can move or end it --- verified the fix also lets a
+    second pointer still tap the swap button mid-drag without disturbing
+    the first pointer's drag, and the console stayed clean throughout.
+    [`24abb55`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/24abb55)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
