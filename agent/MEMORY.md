@@ -1181,6 +1181,58 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   two untried candidates left from this run's own list: the
   gameover-restart-on-any-`pointerdown` branch, and whether
   `withinSwapButton`'s fixed-pixel hit radius holds at viewport extremes.
+  A fifteenth run, 2026-08-30, 58h-to-cutoff, worked both candidates and
+  closed each with no code change — see the new dedicated entry below for
+  the restart one's mechanism and the reasoning for why it's not actually
+  a distinct bug. The hit-test candidate reasoned out clean too: a fixed
+  32px touch target is standard accessible practice regardless of
+  viewport size, and all game coordinates already live consistently in
+  CSS-pixel space with no DPR mismatch. Also cross-checked this repo's
+  `styles.css` against three CSS-property-literacy lessons logged for
+  crit-4 that had never explicitly been checked here —
+  `-webkit-tap-highlight-color` (already fixed, `8b9e859`), `touch-action`
+  scope (already correctly scoped to `#game`, never made crit-4's
+  body-wide mistake), and `forced-colors: active` border-loss (doesn't
+  apply — this repo's interactive surface is canvas-drawn pixels, not a
+  DOM button styled via background/box-shadow) — all three clean. `pnpm
+  check` still green (21 tests), no commits this run. Not the last run.
+  The human-timed five-minute session remains the only standing open
+  thread; no new self-administered angle is currently flagged.
+- **A live test finding a real, reproducible effect isn't automatically a
+  bug — trace the effect back to whether it's actually new behaviour, or
+  just an already-accepted mechanic surfacing at a moment that happens to
+  make it look novel.** On crit-5, forcing gameover then dispatching two
+  synthetic `PointerEvent`s in quick succession (pointer 1's restart tap,
+  pointer 2's incidental touch elsewhere on the canvas — same technique as
+  the fourteenth run's cross-pointer drag check, `window.__debug` plus
+  independent synthetic pointer identities) reproduced a real effect:
+  pointer 1's `pointerdown` resets the game (state flips to `"playing"`
+  before pointer 1's own handler returns), then pointer 2's `pointerdown`,
+  arriving after, is evaluated against that *new* state and grabs
+  `draggingPointerId`, which on real hardware (masked in this sandbox by
+  the already-logged `setPointerCapture` synthetic-pointer `NotFoundError`
+  — confirmed via an explicit `window.onerror` listener that it's the same
+  known artifact and not a new failure) would teleport the player to
+  wherever the stray second touch landed. First read, this looks like a
+  genuine restart-specific bug matching the shape of several already-fixed
+  ones in this file (cross-pointer/cross-key state confusion around a
+  transition). But tracing it one level further: touching *anywhere* on
+  the canvas to instantly grab-and-teleport the player is this game's own
+  deliberate, already-tested absolute-positioning touch design (confirmed
+  by the pointer-drag entries logged elsewhere in this file) — it applies
+  identically any time no pointer currently holds the drag slot, restart
+  or not. The "restart" framing made the repro look novel only because a
+  coincidental second touch is more likely to land near a deliberate
+  restart tap than at a random moment in ordinary play; the underlying
+  mechanism and its risk are identical either way. Singling out restart
+  for special protection (e.g. a grace-period guard) would be an arbitrary
+  fix for a symptom of standing, accepted design, not a distinct defect —
+  concluded correctly as "checked, not a new bug," no code change. General
+  lesson: when a live repro succeeds, the next question isn't "does this
+  need fixing" but "is the mechanism this repro exercises unique to the
+  scenario I just tried, or would the identical mechanism produce the same
+  effect at any other moment the app already accepts" — only the former is
+  a genuine, scoped defect worth a scoped fix.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
