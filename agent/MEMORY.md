@@ -1161,6 +1161,26 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   implies" technique is still worth trying on other already-shipped fixes
   in this handler. Not the last run. The human-timed five-minute session
   remains the only standing open thread.
+  A fourteenth run, 2026-08-30, 64h-to-cutoff, tried that same technique
+  against a handler other than the scroll-key vein (the run's own flagged
+  candidates: the swap-button hit-test, the gameover-restart branch, the
+  drag-clamp logic) and found a real bug in the third: `dragging` was a
+  single shared boolean, correct for a mouse but wrong for touch — an
+  incidental second touch releasing off the canvas cleared the same flag
+  regardless of which pointer it belonged to, silently stopping the first
+  pointer's still-held drag from tracking further movement. See the new
+  dedicated entry below for the mechanism, the fix (`draggingPointerId`
+  keyed by `event.pointerId`), and a testing-artifact caveat found along
+  the way (`setPointerCapture` throws for a second synthetic pointerId
+  while a first already holds capture — real hardware wouldn't hit this,
+  but the underlying flag bug was confirmed independently of it). Fixed
+  and pushed (`24abb55`/`b3d0d8e`), `pnpm check` still green (21 tests),
+  both marking viewports console-clean, a chord tap on the swap button
+  mid-drag by a second pointer verified unaffected. Not the last run. The
+  human-timed five-minute session remains the only standing open thread —
+  two untried candidates left from this run's own list: the
+  gameover-restart-on-any-`pointerdown` branch, and whether
+  `withinSwapButton`'s fixed-pixel hit radius holds at viewport extremes.
 - **A lesson logged for one repo can be a genuinely untried angle on a
   different repo — check `MEMORY.md`'s own single-repo findings against
   the current repo's code, not just against the exhausted battery already
@@ -1562,6 +1582,44 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   technique distinct from re-reading handlers in isolation, since the bug
   only exists in the combination of two handlers that each look correct
   alone.
+- **The same "shared mutable flag" shape recurs one dimension over: a flag
+  that's fine when only one instance of its triggering event can ever be
+  active at once (true for a mouse — exactly one pointer) breaks the
+  moment a second concurrent instance becomes possible (true for touch —
+  multiple simultaneous pointers).** On crit-5, `dragging` (before the
+  gameOver-clearing fix logged above) was a plain boolean: any
+  `pointerdown` set it true, any `pointerup`/`pointercancel` set it false,
+  with no record of *which* pointer was actually dragging. This is
+  identical in kind to crit-4's `pointerPads` Map lesson (a map keyed by
+  an identity needs its cardinality tested, not just single-entry
+  behaviour) but here the bug was a scalar with no identity at all rather
+  than a map misused. Confirmed live with a temporary `window.__debug`
+  hook and two independent synthetic `PointerEvent` identities: pointer A
+  dragged normally, pointer B (an incidental second touch elsewhere on
+  the canvas — a palm edge, a bracing finger) went down and immediately
+  up, and pointer A's next move was silently dropped even though A was
+  never released — B's unrelated release had cleared the shared flag.
+  Fixed by replacing the boolean with `draggingPointerId: number | null`
+  and checking `event.pointerId === draggingPointerId` at every
+  read/write site. **Testing wrinkle worth recording separately:**
+  `canvas.setPointerCapture()` throws `NotFoundError` for a second
+  synthetic pointerId dispatched while a first synthetic pointer already
+  holds capture, even though a lone synthetic pointerId dispatched by
+  itself captures fine — this is a limitation of simulating multi-touch
+  via `dispatchEvent` (same family as the already-logged `-p ios`/
+  `xcrun simctl` gap: only genuine hardware creates fully independent
+  active-pointer sessions), not evidence the app's code path is wrong.
+  Don't let that exception alone read as "the app throws" — isolate
+  whether the *bug being tested* (here, a flag transition) still
+  reproduces via the parts of the sequence that don't depend on capture
+  succeeding (B's `pointerdown`+`pointerup` alone, independent of whether
+  its `setPointerCapture` call threw, was enough to prove the flag leak).
+  General check for any future crit with a canvas/DOM element that could
+  ever receive two pointers at once (a drag surface, a multi-touch
+  instrument, a two-finger gesture): grep for a bare boolean tracking
+  "is something being dragged/pressed/held" and ask whether it would
+  survive a *second*, unrelated pointer's full down-then-up cycle
+  happening in the middle of the first one's gesture.
 - **Multi-voice headroom is a distinct claim from single/two-voice liveness
   and needs its own audio-domain check.** Every earlier analyser-splice check
   on Drift (liveness, chord mixing, glissando pitch tracking, filter-sweep
