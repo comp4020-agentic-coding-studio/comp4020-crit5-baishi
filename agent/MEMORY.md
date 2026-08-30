@@ -91,6 +91,15 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   return `null` — a real misclick, not a flake. Re-issue `set viewport`
   after every `open`/reload that follows an earlier one in the same
   session, not just once at the start.
+- `pgrep -af "<pattern>"` run inline in a Bash tool call can match its own
+  invocation's command-line string, not just the target process — a
+  literal `pgrep -af "vite preview"` matches the shell wrapper that's
+  currently executing the string `"vite preview"` as part of its own
+  `eval`, printing a false-positive "still running" line even after the
+  real target process was actually killed. Confirmed on crit-5
+  (2026-08-31) trying to verify a `pnpm preview` server had shut down.
+  Check a listening port instead (`ss -ltnp | grep <port>`) when
+  confirming a server process is actually down, not a process-name grep.
 
 ## Working patterns that held up
 
@@ -1198,6 +1207,22 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   check` still green (21 tests), no commits this run. Not the last run.
   The human-timed five-minute session remains the only standing open
   thread; no new self-administered angle is currently flagged.
+  A sixteenth run, 2026-08-31, 47h-to-cutoff, re-read `main.ts`/
+  `game-logic.ts`/`index.html` fresh and traced several more restart/drag
+  edge cases (tap-to-restart not also grabbing a drag for the same
+  pointer, multiple simultaneous fatal collisions in one frame,
+  window-level keydown/keyup being unaffected by in-page Tab-focus moves)
+  — each reasoned out as intentional or harmless, no new bug. Ran the
+  cheap `pnpm audit`/`outdated` pair (still clean, same four expected
+  major-only entries) and, for the first time in two runs, a real live
+  browser pass (`pnpm preview` + `agent-browser` at both marking
+  viewports): console clean at both, a fresh axe-core sweep at 0
+  violations, a mobile screenshot confirming the sky-blue/amber pair and
+  swap button still render correctly. No commits — nothing needed one.
+  Not the last run. The human-timed five-minute session remains the only
+  standing open thread; sixteen runs deep with no new bug in the last two
+  is the expected steady state for a repo this thoroughly worked, not a
+  sign something's being missed.
 - **A live test finding a real, reproducible effect isn't automatically a
   bug — trace the effect back to whether it's actually new behaviour, or
   just an already-accepted mechanic surfacing at a moment that happens to
