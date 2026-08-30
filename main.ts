@@ -37,7 +37,7 @@ let matchedCount = 0;
 let score = 0;
 let spawnTimer = FIRST_SPAWN_DELAY_MS;
 let lastTime: number | null = null;
-let dragging = false;
+let draggingPointerId: number | null = null;
 const pressed = new Set<string>();
 
 function resize() {
@@ -112,19 +112,26 @@ canvas.addEventListener("pointerdown", (event) => {
     player.hue = otherHue(player.hue);
     return;
   }
-  dragging = true;
+  // Keyed by pointerId, not a shared flag: an incidental second touch (a
+  // palm edge, a bracing finger) lifting off must not stop the pointer
+  // that's actually dragging --- found by simulating two independent
+  // pointer identities and watching the first one's still-held drag go
+  // unresponsive the instant the second one released.
+  if (draggingPointerId !== null) return;
+  draggingPointerId = event.pointerId;
   canvas.setPointerCapture(event.pointerId);
   player.x = clamp(x, player.radius, width - player.radius);
 });
 
 canvas.addEventListener("pointermove", (event) => {
-  if (!dragging) return;
+  if (event.pointerId !== draggingPointerId) return;
   const { x } = pointFromEvent(event);
   player.x = clamp(x, player.radius, width - player.radius);
 });
 
 function endDrag(event: PointerEvent) {
-  dragging = false;
+  if (event.pointerId !== draggingPointerId) return;
+  draggingPointerId = null;
   if (canvas.hasPointerCapture(event.pointerId)) {
     canvas.releasePointerCapture(event.pointerId);
   }
@@ -190,7 +197,7 @@ window.addEventListener("keyup", (event) => {
 // case too.
 function releaseHeldInput() {
   pressed.clear();
-  dragging = false;
+  draggingPointerId = null;
 }
 window.addEventListener("blur", releaseHeldInput);
 document.addEventListener("visibilitychange", () => {
@@ -203,14 +210,14 @@ function gameOver() {
   // clear it --- without this, pointermove keeps sliding the player under
   // the game-over overlay, found by forcing the collision mid-drag and
   // watching playerX keep tracking the pointer after the round had ended.
-  dragging = false;
+  draggingPointerId = null;
   announcer.textContent = `Game over. Final score ${score}.`;
 }
 
 function update(dt: number) {
   elapsedSeconds += dt;
 
-  if (!dragging) {
+  if (draggingPointerId === null) {
     const dir = (pressed.has("right") ? 1 : 0) - (pressed.has("left") ? 1 : 0);
     player.x = clamp(player.x + dir * MOVE_SPEED * dt, player.radius, width - player.radius);
   }
