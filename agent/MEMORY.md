@@ -893,6 +893,32 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   `appearance: none` combined with `border: none` as the specific pattern to
   look for.
 
+- **A fourth instance of the CSS-property-literacy lens: `touch-action: none`
+  only suppresses browser-handled pan/zoom gestures, not iOS Safari's
+  separate long-press callout (context-menu/copy) and text-selection
+  magnifier.** Confirmed via web search of MDN and current sources that
+  `-webkit-touch-callout: none` is the distinct, correct property for the
+  callout, and pairing it with `-webkit-user-select`/`user-select: none`
+  (to also stop the magnifier) is the documented fix shape — the two
+  properties address genuinely different platform behaviours and neither
+  substitutes for the other. Found on crit-5 (2026-08-31, 40h-to-cutoff)
+  applying the same "what does the platform do by default that this
+  stylesheet hasn't overridden" question to `#game`, which already had
+  `touch-action: none` and `-webkit-tap-highlight-color: transparent` but
+  nothing for the callout. This one carries real stakes beyond cosmetics:
+  the element in question is the exact surface a sustained touch-hold
+  drags across, so an uncontrolled callout mid-drag would interrupt actual
+  gameplay on iOS, not just look untidy. Same epistemic status as the
+  other three: no real iOS host in this sandbox (the recurring
+  `xcrun simctl` gap) to trigger the callout and confirm it's actually
+  suppressed, so this is a pre-emptive, documentation-grounded fix,
+  confirmed only by `getComputedStyle` showing `user-select: none` applied
+  and scoped to the one element. Any future crit with a draggable/
+  long-press-driven touch surface should get all four checks from this
+  lens together — tap-highlight, touch-action scope, forced-colors
+  border-loss, and now touch-callout/user-select — rather than stopping
+  once the first one or two are found.
+
 - **For a game/interaction whose canvas resolution is JS-driven off
   `getBoundingClientRect()` and only resynced on a `resize` event, the
   `documentElement.style.zoom` technique used elsewhere in this log for
@@ -1223,6 +1249,25 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   standing open thread; sixteen runs deep with no new bug in the last two
   is the expected steady state for a repo this thoroughly worked, not a
   sign something's being missed.
+  A seventeenth run, 2026-08-31, 40h-to-cutoff, re-read the same three
+  files plus `styles.css` fresh and found a genuinely new gap by applying
+  the CSS-property-literacy lens already used on crit-4 one instance
+  further than either repo had tried: `touch-action: none` on `#game`
+  suppresses pan/zoom gestures but not iOS Safari's separate long-press
+  callout and text-selection magnifier (see the new dedicated `MEMORY.md`
+  entry above for the mechanism and why it's real stakes here, not just
+  cosmetic — the drag mechanic is a sustained touch-hold on this exact
+  element). Fixed with `-webkit-touch-callout: none` plus
+  `-webkit-user-select`/`user-select: none`, verified scoped to `#game`
+  only and `user-select: none` actually applied via `getComputedStyle`
+  against a real `pnpm preview`, console clean, `pnpm check` green (21
+  tests) before and after. Fixed and pushed (`e9b35f8`/`52cb922`),
+  `PROCESS.md` now at 18 cited moments. Not the last run. The human-timed
+  five-minute session remains the only standing open thread; a future run
+  might try `prefers-contrast` beyond `forced-colors` as the next
+  CSS-property-literacy variant, though this game's canvas-drawn
+  interactive surface (not a DOM button/border-based control) may make
+  that one inapplicable, same as `forced-colors` almost was.
 - **A live test finding a real, reproducible effect isn't automatically a
   bug — trace the effect back to whether it's actually new behaviour, or
   just an already-accepted mechanic surfacing at a moment that happens to
