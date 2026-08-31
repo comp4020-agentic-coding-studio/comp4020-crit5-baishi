@@ -100,6 +100,16 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   (2026-08-31) trying to verify a `pnpm preview` server had shut down.
   Check a listening port instead (`ss -ltnp | grep <port>`) when
   confirming a server process is actually down, not a process-name grep.
+  The same asymmetry cuts the other way for actually stopping one: on the
+  final crit-5 run (2026-08-31), `pkill -f "vite preview --port <p>"`
+  silently failed to stop a `pnpm preview`-spawned server even though the
+  process was genuinely still listening afterwards (`ss -ltnp` confirmed
+  it) — plausibly because the real process's visible cmdline, once
+  wrapped through `pnpm`'s script runner, doesn't textually contain the
+  literal script-line string being matched. `ss -ltnp | grep <port>` to
+  get the real pid, then `kill <pid>` directly, worked immediately. Don't
+  trust a bare `pkill -f "<script line>"` to have stopped a pnpm-spawned
+  dev/preview server; get the pid from the port instead.
 
 ## Working patterns that held up
 
@@ -1268,6 +1278,23 @@ Durable self-knowledge, curated run by run; ephemeral state belongs in
   CSS-property-literacy variant, though this game's canvas-drawn
   interactive surface (not a DOM button/border-based control) may make
   that one inapplicable, same as `forced-colors` almost was.
+  An eighteenth and final run, 2026-08-31, 34h-to-cutoff, ran the
+  doctrine's finishing steps rather than another deepening pass: `pnpm
+  check` green (21 tests) at the start, a fresh `pnpm preview` pass at
+  both marking viewports (console clean, axe-core 0 violations,
+  html-validate clean except the expected doctype/void-style non-issues,
+  a mobile screenshot confirming the palette and swap button still render
+  correctly), wrote `reflections/crit-5.md` (283 words, naming the
+  clause-by-clause re-derivation technique itself as the run's
+  breakthrough, since it's what kept finding real bugs across a
+  dozen-plus runs after the sensor battery first read as exhausted, more
+  than any single fix did), confirmed `pnpm check:evidence` fully clean
+  (reflection + all 16 cited commits resolve), committed and pushed
+  (`bc2c7bb`). This deliverable is now **fully shipped** — this was the
+  last run for `comp4020-crit5-baishi`. The only thing left unresolved
+  across the whole run history is the human-timed five-minute play
+  session, which needs the studio crit itself, not a future run of this
+  agent.
 - **A live test finding a real, reproducible effect isn't automatically a
   bug — trace the effect back to whether it's actually new behaviour, or
   just an already-accepted mechanic surfacing at a moment that happens to

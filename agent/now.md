@@ -7,44 +7,42 @@ deliverable: comp4020-crit5-baishi
 
 ## State
 
-Seventeenth run on `comp4020-crit5-baishi`, 40h to cutoff — still deepen
-phase, not the last run. `git status` was clean and `origin/main` matched
-local `HEAD` (`210bc7a`) at the start, confirming the sixteenth run's
-hand-off (no new bug in two straight runs) was accurate.
+Eighteenth and **final** run on `comp4020-crit5-baishi`, 34h to cutoff.
+`git status` was clean and `origin/main` matched local `HEAD` (`1779b26`)
+at the start, confirming the seventeenth run's hand-off was accurate.
 
-Re-read `main.ts`/`game-logic.ts`/`index.html`/`styles.css` fresh and
-found one genuinely new angle: the CSS-property-literacy lens already
-used on crit-4 (`-webkit-tap-highlight-color`, `touch-action` scope,
-`forced-colors`) had a fourth, still-untried instance on this repo.
-`touch-action: none` on `#game` only suppresses pan/zoom gestures — it
-does not touch iOS Safari's separate long-press callout (context
-menu/copy) and text-selection magnifier, confirmed via web search of MDN
-and current sources. That matters specifically here because the drag
-mechanic *is* a sustained touch-hold on this exact element, so an
-uncontrolled callout is a real risk of interrupting a drag mid-game on
-iOS, not a cosmetic nicety. Fixed with `-webkit-touch-callout: none` plus
-`-webkit-user-select`/`user-select: none`, the documented pairing.
-Verified scoped to `#game` only (grep) and `user-select: none` actually
-applied via `getComputedStyle` against a real `pnpm preview`; the callout
-itself stays unverifiable in this sandbox (no real iOS host — the same
-`xcrun simctl` gap logged repeatedly elsewhere), so this is a pre-emptive,
-documentation-grounded fix, same epistemic status as the tap-highlight and
-forced-colors fixes on crit-4. `pnpm check` green (21 tests) both before
-and after. Fixed and pushed (`e9b35f8`/`52cb922`), `PROCESS.md` now at 18
-cited moments.
+Ran the doctrine's finishing steps rather than another deepening pass,
+since this run's prompt named it the last:
+
+- `pnpm check` green (21 tests) before touching anything.
+- A fresh `pnpm preview` pass at both marking viewports: console clean at
+  1920x1080 and 390x844, a fresh axe-core sweep at 0 violations, a
+  screenshot confirming the sky-blue/amber pair and the swap button still
+  render correctly on mobile, `html-validate` clean except the expected
+  doctype/void-style non-issues. Shut the preview server down afterwards
+  (needed a `kill <pid>` — `pkill -f "vite preview --port 4173"` didn't
+  actually stop it here, unlike the `pgrep`-self-match false-positive
+  already logged in `MEMORY.md`; this one was a real miss, worth noting
+  as a second, distinct pkill/pgrep-by-pattern gotcha for this repo).
+- Wrote `reflections/crit-5.md` (283 words, both standing prompts): the
+  breakthrough named is the clause-by-clause re-derivation technique
+  itself — treating "the checks are green" as the start of a question
+  rather than the end of one — since that's what actually kept finding
+  real bugs across a dozen-plus runs after the automated sensor battery
+  first read as exhausted, more than any single fix.
+- `pnpm check:evidence` fully clean: the reflection resolves, all 16
+  cited `PROCESS.md` commits resolve.
+- Committed (`bc2c7bb`) and pushed to `origin/main`.
+
+This deliverable is now **fully shipped**. The repo still has no reflection
+gap, no missing citation, and a clean working tree. The only thing left
+unresolved across the whole run history is the human-timed five-minute
+play session — explicitly not self-administerable, needs the studio crit
+itself, not a future run of this agent.
 
 ## Next action
 
-The human-timed five-minute play session remains the sole standing open
-thread — still can't be self-administered, needs the studio crit itself.
-
-No new self-administered angle is currently flagged, but this run shows
-the CSS-property-literacy lens (checking platform/browser defaults the
-stylesheet hasn't overridden, not the app's own code) can still turn up
-something real even after 16 runs of code-reading and sensor-battery
-checks had gone dry. A future run might try the remaining crit-4 lesson
-not yet cross-checked here in depth: `prefers-contrast`/high-contrast
-variants beyond `forced-colors` (already confirmed not applicable since
-this game's interactive surface is canvas pixels, not a DOM
-button/border-based control) — otherwise treat "nothing new found" as the
-expected steady state, not a sign something's being missed.
+None for this deliverable — it's finished. If a future run is ever pointed
+back at this repo (e.g. a `-retro` follow-up), start by reading `PROCESS.md`
+(18 cited moments) and this file's history in `MEMORY.md`'s "Open threads"
+section before assuming anything is still open.
