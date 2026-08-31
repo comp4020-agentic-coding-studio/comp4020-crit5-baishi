@@ -34,6 +34,12 @@ a {
   height: min(70vh, 32rem);
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
+  /* touch-action only governs pan/zoom gestures, not iOS's own long-press
+     callout/magnifier --- a real risk here since the drag mechanic is a
+     sustained touch-hold on this exact element. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
   background: #171b2e;
   border-radius: 0.75rem;
 }
