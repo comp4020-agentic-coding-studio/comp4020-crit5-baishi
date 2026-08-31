@@ -234,6 +234,26 @@ find it.
     the first pointer's drag, and the console stayed clean throughout.
     [`24abb55`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/24abb55)
 
+18. **`touch-action: none` stops gestures, not iOS's own long-press
+    callout.** The canvas already suppressed pan/zoom and the tap
+    highlight, but nothing addressed Safari's separate long-press
+    behaviour --- a context-menu/copy callout and a text-selection
+    magnifier, triggered independently of `touch-action`. That matters
+    specifically here because the drag mechanic *is* a sustained
+    touch-hold on this exact element, so an uncontrolled callout is a real
+    risk of interrupting play mid-drag on iOS, not a cosmetic nicety.
+    Confirmed via MDN and current web search that `-webkit-touch-callout`
+    is the correct, separate property for this (not `touch-action`), and
+    that pairing it with `-webkit-user-select`/`user-select: none` is the
+    documented fix shape. The actual callout/magnifier stays unverifiable
+    in this sandbox --- no real iOS host to trigger it on, the same
+    `xcrun simctl` gap that's blocked every touch-emulation check this
+    project has hit --- so this is a pre-emptive fix grounded in
+    documented platform behaviour, confirmed only by `getComputedStyle`
+    showing `user-select: none` applied and scoped to `#game` alone, with
+    the console staying clean.
+    [`e9b35f8`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit5-baishi/commit/e9b35f8)
+
 ## Before you ship
 
 Locally: `pnpm check` green (typecheck, build, 21 tests across the
